@@ -1,14 +1,14 @@
-# Product Requirements Document: Car Rental Management System
+# Product Requirements Document: Vehicle Rental Management System
 
 ## 1. Product Overview
 
 ### 1.1 Purpose
 
-Build a flexible car rental management system that handles the rental lifecycle from vehicle checkout to return, with automated pricing calculations. The system must be adaptable to multiple customers with varying data storage and UI requirements.
+Build a flexible vehicle rental management system that handles the rental lifecycle from vehicle checkout to return, with automated pricing calculations. The system must be adaptable to multiple customers with varying data storage and UI requirements.
 
 ### 1.2 Objectives
 
-- Implement core business logic for car rental operations
+- Implement core business logic for vehicle rental operations
 - Support multiple vehicle categories with extensible pricing models
 - Provide accurate automated pricing calculations
 - Enable easy integration with different storage backends and user interfaces
@@ -39,7 +39,7 @@ Build a flexible car rental management system that handles the rental lifecycle 
 
 ### 3.1 Primary Users
 
-- **Car Rental Agents**: Staff who process vehicle checkouts and returns at rental locations
+- **Vehicle Rental Agents**: Staff who process vehicle checkouts and returns at rental locations
 
 ### 3.2 System Integrators
 
@@ -174,8 +174,8 @@ Assume that additional vehicles can have a price calculation pattern that differ
 ### 7.3 Date/Time Handling
 
 - No partial days
-- Minimum amount of days a car can be rented is 1
-- If a customer return a car the the same day they rent it, we charge for 1 day
+- Minimum amount of days a vehicle can be rented is 1
+- If a customer return a vehicle the the same day they rent it, we charge for 1 day
 - Take time zones into account when doing calculations
   - If user don't enter a date with a timezone, assumt it's in the users local timezone
   - Get user timezone at application startup

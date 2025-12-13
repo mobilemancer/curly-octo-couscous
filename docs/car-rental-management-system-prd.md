@@ -176,7 +176,9 @@ Assume that additional vehicles can have a price calculation pattern that differ
 - No partial days
 - Minimum amount of days a car can be rented is 1
 - If a customer return a car the the same day they rent it, we charge for 1 day
-- Time zone considerations if system will be used across regions
+- Take time zones into account when doing calculations
+  - If user don't enter a date with a timezone, assumt it's in the users local timezone
+  - Get user timezone at application startup
 
 ## 8. Test Requirements
 

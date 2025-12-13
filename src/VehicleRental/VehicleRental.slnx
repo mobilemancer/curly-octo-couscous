@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="VehicleRental.CLI/VehicleRental.CLI.csproj" />
+  <Project Path="VehicleRental.Core.Tests/VehicleRental.Core.Tests.csproj" />
+  <Project Path="VehicleRental.Core/VehicleRental.Core.csproj" />
+  <Project Path="VehicleRental.Infrastructure/VehicleRental.Infrastructure.csproj" />
+</Solution>

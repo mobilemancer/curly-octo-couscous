@@ -1,0 +1,6 @@
+# Assumptions
+
+1. Minimum period to rent a vehicle is one full day.
+2. A driver can return a vehicle in a different time zone.
+3. Rounding for final price presentation rounds up to nearest integer value.
+4. An inital set of vehicles available for rental is available to the system on startup.

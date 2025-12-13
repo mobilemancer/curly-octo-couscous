@@ -1,0 +1,62 @@
+[
+    {
+        "registrationNumber": "ABC123",
+        "vehicleTypeId": "small-car"
+    },
+    {
+        "registrationNumber": "ABC124",
+        "vehicleTypeId": "small-car"
+    },
+    {
+        "registrationNumber": "ABC125",
+        "vehicleTypeId": "small-car"
+    },
+    {
+        "registrationNumber": "ABC126",
+        "vehicleTypeId": "small-car"
+    },
+    {
+        "registrationNumber": "ABC127",
+        "vehicleTypeId": "small-car"
+    },
+    {
+        "registrationNumber": "DEF456",
+        "vehicleTypeId": "station-wagon"
+    },
+    {
+        "registrationNumber": "DEF457",
+        "vehicleTypeId": "station-wagon"
+    },
+    {
+        "registrationNumber": "DEF458",
+        "vehicleTypeId": "station-wagon"
+    },
+    {
+        "registrationNumber": "DEF459",
+        "vehicleTypeId": "station-wagon"
+    },
+    {
+        "registrationNumber": "DEF460",
+        "vehicleTypeId": "station-wagon"
+    },
+    {
+        "registrationNumber": "GHI789",
+        "vehicleTypeId": "truck"
+    },
+    {
+        "registrationNumber": "GHI790",
+        "vehicleTypeId": "truck"
+    },
+    {
+        "registrationNumber": "GHI791",
+        "vehicleTypeId": "truck"
+    },
+    {
+        "registrationNumber": "GHI792",
+        "vehicleTypeId": "truck"
+    },
+    {
+        "registrationNumber": "GHI793",
+        "vehicleTypeId": "truck"
+    }
+]

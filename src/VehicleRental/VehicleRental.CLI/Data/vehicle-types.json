@@ -1,0 +1,20 @@
+[
+    {
+        "vehicleTypeId": "small-car",
+        "displayName": "Small Car",
+        "pricingFormula": "baseDayRate * days",
+        "description": "Compact and economical vehicles suitable for city driving"
+    },
+    {
+        "vehicleTypeId": "station-wagon",
+        "displayName": "Station Wagon",
+        "pricingFormula": "(baseDayRate * days * 1.3) + (baseKmPrice * km)",
+        "description": "Spacious family vehicles with extra cargo capacity"
+    },
+    {
+        "vehicleTypeId": "truck",
+        "displayName": "Truck",
+        "pricingFormula": "(baseDayRate * days * 1.5) + (baseKmPrice * km * 1.5)",
+        "description": "Heavy-duty vehicles for cargo and transport"
+    }
+]

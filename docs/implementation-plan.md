@@ -6,12 +6,12 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 ## 0. Guardrails (Do First)
 
-- [ ] Confirm dependency direction is enforced: Core → (none), Infrastructure → Core, CLI → Core+Infrastructure, Tests → Core (optionally Infrastructure)
-- [ ] Define folder structure: Core/{Domain,Application,Ports}, Infrastructure/{Repositories,Stores,JsonLoaders}, CLI/{Commands,Configuration}
+- [x] Confirm dependency direction is enforced: Core → (none), Infrastructure → Core, CLI → Core+Infrastructure, Tests → Core (optionally Infrastructure)
+- [x] Define folder structure: Core/{Domain,Application,Ports}, Infrastructure/{Repositories,Stores,JsonLoaders}, CLI/{Commands,Configuration}
 - [ ] Decide one error-handling style and apply consistently across Core (recommended: Result-style errors)
 - [ ] Define error/Result type structure for consistent validation messages across all use cases
-- [ ] Decide refresh approach for vehicle types (recommended Phase 1: explicit command `reload-vehicle-types`; optional: file watcher)
-- [ ] Commit to test-first approach: write failing test → implement feature → test passes (TDD)
+- [x] Decide refresh approach for vehicle types (recommended Phase 1: explicit command `reload-vehicle-types`; optional: file watcher)
+- [x] Commit to test-first approach: write failing test → implement feature → test passes (TDD)
 
 ---
 
@@ -19,34 +19,34 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 ### 1.1 Domain types
 
-- [ ] Create `VehicleTypeDefinition` model (`VehicleTypeId`, `DisplayName`, `PricingFormula`, `Description?`)
-- [ ] Create `Vehicle` model (`RegistrationNumber`, `VehicleTypeId`)
-- [ ] Create `Rental` model (checkout/return fields + derived fields concept)
-- [ ] Ensure timestamps use `DateTimeOffset` and money uses `decimal`
+- [x] Create `VehicleTypeDefinition` model (`VehicleTypeId`, `DisplayName`, `PricingFormula`, `Description?`)
+- [x] Create `Vehicle` model (`RegistrationNumber`, `VehicleTypeId`)
+- [x] Create `Rental` model (checkout/return fields + derived fields concept)
+- [x] Ensure timestamps use `DateTimeOffset` and money uses `decimal`
 
 ### 1.2 Core configuration types
 
-- [ ] Create `PricingParameters` (`BaseDayRate`, `BaseKmPrice`)
-- [ ] Define canonicalization rules for `VehicleTypeId` (trim + lower-case; reject empty)
+- [x] Create `PricingParameters` (`BaseDayRate`, `BaseKmPrice`)
+- [x] Define canonicalization rules for `VehicleTypeId` (trim + lower-case; reject empty)
 
 ### 1.3 Ports (interfaces)
 
-- [ ] Define `IRentalRepository` (exists/get/add/update + active-rental check)
-- [ ] Define `IVehicleCatalog` (lookup by registration number)
-- [ ] Define `IVehicleTypeStore` (get by id, list all)
-- [ ] Define `IPriceFormulaEvaluator` (evaluate formula with variables)
-- [ ] Use `Microsoft.Extensions.Logging.ILogger<T>` for logging (inject into use cases and stores as needed)
+- [x] Define `IRentalRepository` (exists/get/add/update + active-rental check)
+- [x] Define `IVehicleCatalog` (lookup by registration number)
+- [x] Define `IVehicleTypeStore` (get by id, list all)
+- [x] Define `IPriceFormulaEvaluator` (evaluate formula with variables)
+- [x] Use `Microsoft.Extensions.Logging.ILogger<T>` for logging (inject into use cases and stores as needed)
 
 ### 1.4 Cross-cutting helpers
 
-- [ ] Implement duration/day calculation helper: `days = max(1, ceil((returnUtc - checkoutUtc).TotalDays))`
-- [ ] Implement distance helper: `km = returnOdometer - checkoutOdometer`
-- [ ] Implement rounding helper: final price is `Ceiling(rawPrice)` to whole currency units
+- [x] Implement duration/day calculation helper: `days = max(1, ceil((returnUtc - checkoutUtc).TotalDays))`
+- [x] Implement distance helper: `km = returnOdometer - checkoutOdometer`
+- [x] Implement rounding helper: final price is `Ceiling(rawPrice)` to whole currency units
 
 - Exit criteria:
 
-- [ ] Core compiles
-- [ ] Unit tests exist for day calculation and rounding (happy path + edge cases)
+- [x] Core compiles
+- [x] Unit tests exist for day calculation and rounding (happy path + edge cases)
 
 ---
 
@@ -54,32 +54,32 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 ### 2.1 Formula language and safety
 
-- [ ] Choose formula evaluator approach: custom recursive descent parser (full control) vs. sandboxed library (NCalc/DynamicExpresso with restricted mode)
-- [ ] Implement `IPriceFormulaEvaluator` supporting only: `+ - * / ( )`, decimal literals, variables: `days`, `km`, `baseDayRate`, `baseKmPrice`
-- [ ] Add strict validation at load/evaluate time: reject disallowed characters/tokens, enforce max length (e.g., 500 chars)
+- [x] Choose formula evaluator approach: custom recursive descent parser (full control) vs. sandboxed library (NCalc/DynamicExpresso with restricted mode)
+- [x] Implement `IPriceFormulaEvaluator` supporting only: `+ - * / ( )`, decimal literals, variables: `days`, `km`, `baseDayRate`, `baseKmPrice`
+- [x] Add strict validation at load/evaluate time: reject disallowed characters/tokens, enforce max length (e.g., 500 chars)
 - [ ] Add caching of parsed/compiled formulas by `VehicleTypeId` (performance + determinism)
-- [ ] Add formula security tests: injection attempts (semicolons, method calls), divide-by-zero, deeply nested parentheses (stack overflow protection)
+- [x] Add formula security tests: injection attempts (semicolons, method calls), divide-by-zero, deeply nested parentheses (stack overflow protection)
 
 ### 2.2 Pricing selection
 
-- [ ] Define pricing selection API (recommended): `PricingCalculator.Calculate(vehicleTypeId, parameters, days, km)`
-- [ ] Implement selection using `IVehicleTypeStore` + `IPriceFormulaEvaluator`
-  - [ ] Missing type id → explicit error
-  - [ ] Invalid formula → explicit error
+- [x] Define pricing selection API (recommended): `PricingCalculator.Calculate(vehicleTypeId, parameters, days, km)`
+- [x] Implement selection using `IVehicleTypeStore` + `IPriceFormulaEvaluator`
+  - [x] Missing type id → explicit error
+  - [x] Invalid formula → explicit error
 
 ### 2.3 Pricing tests
 
-- [ ] Add test vectors for the three initial types:
-  - [ ] `small-car`: `baseDayRate * days`
-  - [ ] `station-wagon`: `(baseDayRate * days * 1.3) + (baseKmPrice * km)`
-  - [ ] `truck`: `(baseDayRate * days * 1.5) + (baseKmPrice * km * 1.5)`
+- [x] Add test vectors for the three initial types:
+  - [x] `small-car`: `baseDayRate * days`
+  - [x] `station-wagon`: `(baseDayRate * days * 1.3) + (baseKmPrice * km)`
+  - [x] `truck`: `(baseDayRate * days * 1.5) + (baseKmPrice * km * 1.5)`
 - [ ] Verify rounding is applied only once at the end (ceil)
 
 - Exit criteria:
 
-- [ ] Pricing formula evaluation is deterministic and safe
-- [ ] All pricing tests pass
-- [ ] Security tests confirm formulas cannot execute arbitrary code
+- [x] Pricing formula evaluation is deterministic and safe
+- [x] All pricing tests pass
+- [x] Security tests confirm formulas cannot execute arbitrary code
 
 ---
 
@@ -90,6 +90,7 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 - [ ] Implement timestamp parser in CLI that detects offset presence in input strings
 - [ ] Apply system local timezone to offset-less timestamps (e.g., `2025-12-13T10:00:00` → `DateTimeOffset` with local offset)
 - [ ] Parse ISO-8601 timestamps with explicit offsets directly (e.g., `2025-12-13T10:00:00+01:00`)
+- [ ] Make sure the user can enter very relaxed times (eg 10:00, 22, 23:42)
 
 ### 2.5.2 Time zone tests
 
@@ -109,23 +110,23 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 ### 3.1 JSON schemas and seed data
 
-- [ ] Define `vehicles.json` format: `[ { registrationNumber, vehicleTypeId } ]`
-- [ ] Define `vehicle-types.json` format: `[ { vehicleTypeId, displayName, pricingFormula, description? } ]`
-- [ ] Create initial `vehicle-types.json` with the three required types:
-  - [ ] `small-car`: formula `baseDayRate * days`
-  - [ ] `station-wagon`: formula `(baseDayRate * days * 1.3) + (baseKmPrice * km)`
-  - [ ] `truck`: formula `(baseDayRate * days * 1.5) + (baseKmPrice * km * 1.5)`
-- [ ] Create initial `vehicles.json` with at least 15 vehicles (one per type) for testing
+- [x] Define `vehicles.json` format: `[ { registrationNumber, vehicleTypeId } ]`
+- [x] Define `vehicle-types.json` format: `[ { vehicleTypeId, displayName, pricingFormula, description? } ]`
+- [x] Create initial `vehicle-types.json` with the three required types:
+  - [x] `small-car`: formula `baseDayRate * days`
+  - [x] `station-wagon`: formula `(baseDayRate * days * 1.3) + (baseKmPrice * km)`
+  - [x] `truck`: formula `(baseDayRate * days * 1.5) + (baseKmPrice * km * 1.5)`
+- [x] Create initial `vehicles.json` with at least 15 vehicles (one per type) for testing
 
 ### 3.2 Implement stores
 
-- [ ] Implement `InMemoryVehicleCatalog` loading `vehicles.json` (lookup by registration number)
-- [ ] Implement `InMemoryVehicleTypeStore` loading `vehicle-types.json`
-  - [ ] Enforce unique `vehicleTypeId` (case-insensitive)
-  - [ ] Validate formula at load time (fail fast)
-- [ ] Implement `InMemoryRentalRepository`
-  - [ ] Unique booking number enforcement (defensive)
-  - [ ] “Active rental per vehicle” check
+- [x] Implement `InMemoryVehicleCatalog` loading `vehicles.json` (lookup by registration number)
+- [x] Implement `InMemoryVehicleTypeStore` loading `vehicle-types.json`
+  - [x] Enforce unique `vehicleTypeId` (case-insensitive)
+  - [x] Validate formula at load time (fail fast)
+- [x] Implement `InMemoryRentalRepository`
+  - [x] Unique booking number enforcement (defensive)
+  - [x] "Active rental per vehicle" check
 
 
 ### 3.3 Infrastructure tests (lightweight)

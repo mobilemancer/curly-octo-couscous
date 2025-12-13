@@ -87,9 +87,9 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 ### 2.5.1 CLI timestamp parsing
 
-- [ ] Implement timestamp parser in CLI that detects offset presence in input strings
-- [ ] Apply system local timezone to offset-less timestamps (e.g., `2025-12-13T10:00:00` → `DateTimeOffset` with local offset)
-- [ ] Parse ISO-8601 timestamps with explicit offsets directly (e.g., `2025-12-13T10:00:00+01:00`)
+- [x] Implement timestamp parser in CLI that detects offset presence in input strings
+- [x] Apply system local timezone to offset-less timestamps (e.g., `2025-12-13T10:00:00` → `DateTimeOffset` with local offset)
+- [x] Parse ISO-8601 timestamps with explicit offsets directly (e.g., `2025-12-13T10:00:00+01:00`)
 - [ ] Make sure the user can enter very relaxed times (eg 10:00, 22, 23:42)
 
 ### 2.5.2 Time zone tests
@@ -101,7 +101,7 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 - Exit criteria:
 
-- [ ] All timestamp inputs are normalized to `DateTimeOffset` before reaching Core
+- [x] All timestamp inputs are normalized to `DateTimeOffset` before reaching Core
 - [ ] Core always operates on UTC instants for duration calculations
 
 ---
@@ -147,44 +147,44 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 ### 4.1 DTOs
 
-- [ ] Create `RegisterCheckoutRequest`
-- [ ] Create `RegisterReturnRequest`
-- [ ] Create `RegisterCheckoutResponse` and `RegisterReturnResponse` (or equivalent)
+- [x] Create `RegisterCheckoutRequest`
+- [x] Create `RegisterReturnRequest`
+- [x] Create `RegisterCheckoutResponse` and `RegisterReturnResponse` (or equivalent)
 
 ### 4.2 Checkout service
 
-- [ ] Implement `CheckoutService`:
-  - [ ] Validate required fields (non-empty strings, non-negative odometer)
-  - [ ] Validate booking number uniqueness
-  - [ ] Validate vehicle exists in `IVehicleCatalog`
-  - [ ] Validate vehicle not already in active rental
-  - [ ] Resolve `VehicleTypeId` (prefer request value; otherwise from vehicle catalog)
-  - [ ] Validate vehicle type exists in `IVehicleTypeStore`
-  - [ ] Persist rental
+- [x] Implement `CheckoutService`:
+  - [x] Validate required fields (non-empty strings, non-negative odometer)
+  - [x] Validate booking number uniqueness
+  - [x] Validate vehicle exists in `IVehicleCatalog`
+  - [x] Validate vehicle not already in active rental
+  - [x] Resolve `VehicleTypeId` (prefer request value; otherwise from vehicle catalog)
+  - [x] Validate vehicle type exists in `IVehicleTypeStore`
+  - [x] Persist rental
 
 ### 4.3 Return service
 
-- [ ] Implement `ReturnService`:
-  - [ ] Load rental by booking number
-  - [ ] Validate return timestamp >= checkout timestamp (UTC instants)
-  - [ ] Validate return odometer >= checkout odometer
-  - [ ] Compute `days` and `km`
-  - [ ] Calculate raw price via `PricingCalculator`
-  - [ ] Apply final rounding (ceiling)
-  - [ ] Persist updated rental
+- [x] Implement `ReturnService`:
+  - [x] Load rental by booking number
+  - [x] Validate return timestamp >= checkout timestamp (UTC instants)
+  - [x] Validate return odometer >= checkout odometer
+  - [x] Compute `days` and `km`
+  - [x] Calculate raw price via `PricingCalculator`
+  - [x] Apply final rounding (ceiling)
+  - [x] Persist updated rental
 
 ### 4.4 Use case tests
 
-- [ ] Validation tests (checkout): missing fields, negative odometer, duplicate booking number, missing vehicle, active rental exists
-- [ ] Validation tests (return): booking not found, return < checkout, return odometer < checkout
-- [ ] End-to-end tests (in-memory): checkout → return → expected days/km/price per initial type
-- [ ] Time zone test: checkout and return in different offsets but correct UTC ordering
-- [ ] Zero km rental test
+- [x] Validation tests (checkout): missing fields, negative odometer, duplicate booking number, missing vehicle, active rental exists
+- [x] Validation tests (return): booking not found, return < checkout, return odometer < checkout
+- [x] End-to-end tests (in-memory): checkout → return → expected days/km/price per initial type
+- [x] Time zone test: checkout and return in different offsets but correct UTC ordering
+- [x] Zero km rental test
 
 - Exit criteria:
 
-- [ ] All use-case tests pass
-- [ ] No Core dependency on Infrastructure/CLI
+- [x] All use-case tests pass
+- [x] No Core dependency on Infrastructure/CLI
 
 ---
 
@@ -192,28 +192,28 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 ### 5.1 Configuration
 
-- [ ] Add `appsettings.json` with `baseDayRate`, `baseKmPrice`, and paths to `vehicles.json` + `vehicle-types.json`
+- [x] Add `appsettings.json` with `baseDayRate`, `baseKmPrice`, and paths to `vehicles.json` + `vehicle-types.json`
 - [ ] Add defaults and allow overrides via environment variables
 
 ### 5.2 DI composition
 
-- [ ] Register Infrastructure implementations for:
-  - [ ] `IVehicleCatalog`
-  - [ ] `IVehicleTypeStore`
-  - [ ] `IRentalRepository`
-- [ ] Register Core pricing + formula evaluator
-- [ ] Register Core use case services
-- [ ] Configure logging using `Microsoft.Extensions.Logging` (AddConsole for Phase 1)
+- [x] Register Infrastructure implementations for:
+  - [x] `IVehicleCatalog`
+  - [x] `IVehicleTypeStore`
+  - [x] `IRentalRepository`
+- [x] Register Core pricing + formula evaluator
+- [x] Register Core use case services
+- [x] Configure logging using `Microsoft.Extensions.Logging` (AddConsole for Phase 1)
 
 ### 5.3 Minimal commands (Phase 1)
 
-- [ ] Implement `checkout` command (inputs align to `RegisterCheckoutRequest`)
-- [ ] Implement `return` command (inputs align to `RegisterReturnRequest`)
+- [x] Implement `checkout` command (inputs align to `RegisterCheckoutRequest`)
+- [x] Implement `return` command (inputs align to `RegisterReturnRequest`)
 - [ ] Implement `reload-vehicle-types` command with atomic validation:
   - [ ] Fully validate new `vehicle-types.json` before swapping
   - [ ] Rollback to old types if new file is invalid (keep previous store intact)
   - [ ] Log reload success/failure with diagnostic details
-- [ ] Add clear console output (booking number, days, km, final price)
+- [x] Add clear console output (booking number, days, km, final price)
 
 ### 5.4 Optional refresh mechanisms
 
@@ -222,7 +222,7 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 - Exit criteria:
 
-- [ ] Running CLI supports checkout/return with seeded vehicles and types
+- [x] Running CLI supports checkout/return with seeded vehicles and types
 - [ ] Reload command updates vehicle types without restart
 
 ---

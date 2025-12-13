@@ -98,6 +98,7 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 - [ ] Test: parsing offset-less timestamp applies system timezone
 - [ ] Test: invalid offset values are rejected with clear error
 - [ ] Test: DST transitions (if applicable to system timezone)
+- [ ] Test: Leap year tests, combined with renting and turning in from different timezones
 
 - Exit criteria:
 
@@ -127,19 +128,6 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 - [x] Implement `InMemoryRentalRepository`
   - [x] Unique booking number enforcement (defensive)
   - [x] "Active rental per vehicle" check
-
-
-### 3.3 Infrastructure tests (lightweight)
-
-- [ ] Test that JSON parsing normalizes and rejects invalid items
-- [ ] Test uniqueness checks for booking numbers and vehicle type ids
-- [ ] Test concurrent checkout attempts on same vehicle (one succeeds, one fails with "already active")
-- [ ] Test that `InMemoryRentalRepository` operations are thread-safe
-
-- Exit criteria:
-
-- [ ] CLI can load both JSON files into stores
-- [ ] Invalid JSON or invalid formulas fail fast with clear errors
 
 ---
 

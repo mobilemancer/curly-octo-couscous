@@ -1,0 +1,19 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "VehicleRental.CLI\\VehicleRental.CLI.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "VehicleRental.DevTools.CLI\\VehicleRental.DevTools.CLI.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "VehicleRental.Server\\VehicleRental.Server.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

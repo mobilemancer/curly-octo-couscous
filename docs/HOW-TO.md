@@ -4,12 +4,12 @@
 
 ### Visual Studio Code
 
-Prerequiste installations:
+Prerequisite installations:
 
 - C# extension
-- .Net 10 SDK
+- .NET 10 SDK
 
-Start the project with F5.
+Start the project with F5 (launches "Launch All" compound configuration which starts Server + CLI + DevTools).
 
 ### Visual Studio
 
@@ -18,7 +18,7 @@ Start the project with F5.
 
 ## What happens when you run the project
 
-Three projects are started in parallel
+Three projects are started in parallel:
 
 - VehicleRental.Server
 - VehicleRental.CLI
@@ -28,18 +28,20 @@ Three projects are started in parallel
 
 #### VehicleRental.Server
 
-Clients connec tto the server. The server validates that the clients should have access. If the clients have access they can download vehicleTypes.
+The server relays information but is not the master of all data. It stores and manages VehicleTypeDefinitions (vehicle types with pricing formulas).
+Clients connect to the server and are authenticated based on settings in `appsettings.json`. If the client's connection is successful, a SignalR connection is established to push real-time updates to VehicleRental.CLI and VehicleRental.DevTools.CLI.
 
 #### VehicleRental.CLI
 
-This is the client used at assumed VehicleRental endpoints all over the world.
-The client connects to the server on startup and recieves VehicleTypes.
-The client cna also receive updated VehicleType information.
+This is the client used at franchise VehicleRental locations.
+The client connects to the server on startup and receives VehicleTypeDefinitions.
+The client can also receive updated VehicleTypeDefinition information via SignalR push notifications.
 
 #### VehicleRental.DevTools.CLI
 
 Used to administer the VehicleRental system.
-Enables CRUD operations over VehicleTypes.
+Enables CRUD operations over VehicleTypeDefinitions.
+Enables Add/Remove operations for Vehicles (relayed to specific location clients via SignalR).
 
 ## System Design Backstory
 
@@ -57,24 +59,4 @@ There are no real third party Auth, or Data storage - they are all mocked in thi
 
 ## System Design Structure
 
-The VehicleRental.CLI is a client. It will need access to 
-
-
-dir -Recurse -Include *.cs,*.md | Get-Content | Measure-Object -Line
-
-truck
-GHI791
-(enter)
-2025-1
-2025-12-14T17:00
-1
-
-GHI791
-2025-12-14T17:00
-500
-30
-
-luxury-car
-Luxury Car
-(baseDayRate * days * 20) + (baseKmPrice * km * 5)
-Rent your Dream!
+See `architecture-diagram.md` for relevant mermaid diagrams describing the system, communication patterns and data ownership and boundaries.

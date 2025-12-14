@@ -44,6 +44,26 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
         return Task.FromResult<IReadOnlyCollection<Vehicle>>(vehicles);
     }
 
+    public Task<bool> UpdateOdometerAsync(string registrationNumber, decimal newOdometer)
+    {
+        if (string.IsNullOrWhiteSpace(registrationNumber))
+        {
+            return Task.FromResult(false);
+        }
+
+        if (_vehicles.TryGetValue(registrationNumber, out var existingVehicle))
+        {
+            var updatedVehicle = existingVehicle with { CurrentOdometer = newOdometer };
+            _vehicles[registrationNumber] = updatedVehicle;
+            _logger.LogInformation("Updated odometer for vehicle {RegistrationNumber} to {Odometer} km",
+                registrationNumber, newOdometer);
+            return Task.FromResult(true);
+        }
+
+        _logger.LogWarning("Vehicle {RegistrationNumber} not found for odometer update", registrationNumber);
+        return Task.FromResult(false);
+    }
+
     private void LoadFromFile(string filePath)
     {
         try

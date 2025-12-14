@@ -184,7 +184,7 @@ static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfig
                 case "🚗 Check Out Vehicle":
                     try
                     {
-                        await CheckoutVehicleAsync(checkoutService, vehicleTypeStore, vehicleCatalog);
+                        await CheckoutVehicleAsync(checkoutService, vehicleTypeStore, vehicleCatalog, rentalRepository);
                     }
                     catch (OperationCanceledException)
                     {
@@ -195,7 +195,7 @@ static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfig
                 case "🏁 Return Vehicle":
                     try
                     {
-                        await ReturnVehicleAsync(returnService, rentalRepository);
+                        await ReturnVehicleAsync(returnService, rentalRepository, vehicleCatalog);
                     }
                     catch (OperationCanceledException)
                     {
@@ -272,7 +272,7 @@ static async Task ListVehicleTypesAsync(IVehicleTypeStore store)
         });
 }
 
-static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStore store, IVehicleCatalog catalog)
+static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStore store, IVehicleCatalog catalog, IRentalRepository repository)
 {
     AnsiConsole.WriteLine();
     AnsiConsole.Write(
@@ -318,10 +318,17 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
 
     AnsiConsole.WriteLine();
 
-    // Step 2: Get vehicles of selected type from catalog
+    // Step 2: Get vehicles of selected type from catalog, excluding rented ones
     var allVehicles = await catalog.GetAllAsync();
+    var allRentals = await repository.GetAllAsync();
+    var rentedVehicleRegistrations = allRentals
+        .Where(r => r.IsActive)
+        .Select(r => r.RegistrationNumber)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
     var availableVehicles = allVehicles
         .Where(v => v.VehicleTypeId.Equals(selectedType.VehicleTypeId, StringComparison.OrdinalIgnoreCase))
+        .Where(v => !rentedVehicleRegistrations.Contains(v.RegistrationNumber))
         .ToList();
 
     if (!availableVehicles.Any())
@@ -445,7 +452,7 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
     }
 }
 
-static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository repository)
+static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository repository, IVehicleCatalog catalog)
 {
     AnsiConsole.WriteLine();
     AnsiConsole.Write(
@@ -456,14 +463,78 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
         });
     AnsiConsole.WriteLine();
 
-    var bookingNumber = AnsiConsole.Prompt(
-        new TextPrompt<string>("[cyan]Booking Number[/] [grey]or type 'esc' to cancel[/]:")
-            .PromptStyle("white"));
+    // Get all active rentals
+    var allRentals = await repository.GetAllAsync();
+    var activeRentals = allRentals.Where(r => r.IsActive).OrderByDescending(r => r.CheckoutTimestamp).ToList();
 
-    if (bookingNumber.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    if (!activeRentals.Any())
+    {
+        AnsiConsole.MarkupLine("[yellow]No active bookings found.[/]");
+        return;
+    }
+
+    // Create a dummy rental for the cancel option
+    var cancelRental = new Rental
+    {
+        BookingNumber = "__CANCEL__",
+        RegistrationNumber = "",
+        VehicleTypeId = "",
+        CheckoutTimestamp = DateTimeOffset.MinValue,
+        CheckoutOdometer = 0
+    };
+
+    var rentalsWithCancel = activeRentals.Concat(new[] { cancelRental }).ToList();
+
+    // Display instruction and header
+    AnsiConsole.MarkupLine("[grey]Use arrow keys to select, Enter to confirm:[/]");
+    AnsiConsole.MarkupLine("[cyan1]┌────────────────────────┬──────────────┬─────────────────┬──────────────────┬──────────────┐[/]");
+    AnsiConsole.MarkupLine("[cyan1]│[/] [bold cyan1]Booking Number[/]         [cyan1]│[/] [bold cyan1]Vehicle[/]      [cyan1]│[/] [bold cyan1]Type[/]            [cyan1]│[/] [bold cyan1]Checked Out[/]      [cyan1]│[/] [bold cyan1]Odometer[/]     [cyan1]│[/]");
+    AnsiConsole.MarkupLine("[cyan1]└────────────────────────┴──────────────┴─────────────────┴──────────────────┴──────────────┘[/]");
+
+    var selectedRental = AnsiConsole.Prompt(
+        new SelectionPrompt<Rental>()
+            .PageSize(10)
+            .HighlightStyle(new Style(Color.Cyan1, Color.Grey15))
+            .UseConverter(r =>
+            {
+                if (r.BookingNumber == "__CANCEL__")
+                    return "[red]  ❌ Cancel and return to main menu[/]";
+
+                return $"{r.BookingNumber.EscapeMarkup(),23} {r.RegistrationNumber.EscapeMarkup(),14} {r.VehicleTypeId.EscapeMarkup(),17} {r.CheckoutTimestamp.ToLocalTime(),18:yyyy-MM-dd HH:mm} {r.CheckoutOdometer,11:F0} km";
+            })
+
+            .AddChoices(rentalsWithCancel));
+
+    if (selectedRental.BookingNumber == "__CANCEL__")
     {
         throw new OperationCanceledException();
     }
+
+    var bookingNumber = selectedRental.BookingNumber;
+
+    // Display checkout details
+    AnsiConsole.WriteLine();
+    var checkoutInfoTable = new Table()
+        .Border(TableBorder.Rounded)
+        .BorderColor(Color.Cyan1)
+        .HideHeaders()
+        .AddColumn("")
+        .AddColumn("");
+
+    checkoutInfoTable.AddRow("[cyan]Booking Number:[/]", $"[white]{selectedRental.BookingNumber.EscapeMarkup()}[/]");
+    checkoutInfoTable.AddRow("[cyan]Vehicle:[/]", $"[white]{selectedRental.RegistrationNumber.EscapeMarkup()}[/]");
+    checkoutInfoTable.AddRow("[cyan]Type:[/]", $"[white]{selectedRental.VehicleTypeId.EscapeMarkup()}[/]");
+    checkoutInfoTable.AddRow("[cyan]Checked Out:[/]", $"[white]{selectedRental.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}[/]");
+    checkoutInfoTable.AddRow("[cyan]Checkout Odometer:[/]", $"[white]{selectedRental.CheckoutOdometer:F0} km[/]");
+
+    AnsiConsole.Write(
+        new Panel(checkoutInfoTable)
+        {
+            Header = new PanelHeader(" 📋 Checkout Details ", Justify.Center),
+            Border = BoxBorder.Rounded,
+            BorderStyle = new Style(Color.Cyan1)
+        });
+    AnsiConsole.WriteLine();
 
     var returnTimestampInput = AnsiConsole.Prompt(
         new TextPrompt<string>("[cyan]Return Timestamp[/] (ISO 8601, e.g., 2024-03-22T14:30:00+01:00) [grey]or type 'esc' to cancel[/]:")
@@ -483,7 +554,7 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
     }
 
     var odometerInput = AnsiConsole.Prompt(
-        new TextPrompt<string>("[cyan]Odometer Reading[/] (km) [grey]or type 'esc' to cancel[/]:")
+        new TextPrompt<string>($"[cyan]Return Odometer Reading[/] (km) [grey](checkout: {selectedRental.CheckoutOdometer:F0} km) or type 'esc' to cancel[/]:")
             .PromptStyle("white"));
 
     if (odometerInput.Equals("esc", StringComparison.OrdinalIgnoreCase))
@@ -548,6 +619,9 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
     if (result.IsSuccess)
     {
         var response = result.Value!;
+
+        // Update the vehicle's odometer in the catalog
+        await catalog.UpdateOdometerAsync(selectedRental.RegistrationNumber, odometer);
 
         var invoiceTable = new Table()
             .Border(TableBorder.Rounded)

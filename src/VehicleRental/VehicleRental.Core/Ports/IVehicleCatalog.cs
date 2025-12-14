@@ -19,4 +19,12 @@ public interface IVehicleCatalog
     /// </summary>
     /// <returns>A collection of all vehicles.</returns>
     Task<IReadOnlyCollection<Vehicle>> GetAllAsync();
+
+    /// <summary>
+    /// Updates the odometer reading for a vehicle.
+    /// </summary>
+    /// <param name="registrationNumber">The registration number of the vehicle to update.</param>
+    /// <param name="newOdometer">The new odometer reading in kilometers.</param>
+    /// <returns>True if the vehicle was found and updated; otherwise, false.</returns>
+    Task<bool> UpdateOdometerAsync(string registrationNumber, decimal newOdometer);
 }

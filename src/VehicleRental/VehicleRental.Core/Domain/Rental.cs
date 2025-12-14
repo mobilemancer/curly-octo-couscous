@@ -11,6 +11,11 @@ public sealed record Rental
     public required string BookingNumber { get; init; }
 
     /// <summary>
+    /// Gets the customer ID associated with this rental.
+    /// </summary>
+    public required string CustomerId { get; init; }
+
+    /// <summary>
     /// Gets the registration number of the rented vehicle.
     /// </summary>
     public required string RegistrationNumber { get; init; }

@@ -367,7 +367,23 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
 
     AnsiConsole.WriteLine();
 
-    // Step 3: Prompt for checkout timestamp
+    // Step 3: Prompt for customer ID
+    var customerId = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Customer ID[/] [grey]or type 'esc' to cancel[/]:")
+            .PromptStyle("white"));
+
+    if (customerId.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new OperationCanceledException();
+    }
+
+    if (string.IsNullOrWhiteSpace(customerId))
+    {
+        AnsiConsole.MarkupLine("[red]Customer ID is required.[/]");
+        return;
+    }
+
+    // Step 4: Prompt for checkout timestamp
     var checkoutTimestampInput = AnsiConsole.Prompt(
         new TextPrompt<string>("[cyan]Checkout Timestamp[/] (ISO 8601, e.g., 2024-03-20T10:00:00+01:00) [grey]or type 'esc' to cancel[/]:")
             .PromptStyle("white")
@@ -406,6 +422,7 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
     var request = new RegisterCheckoutRequest
     {
         BookingNumber = bookingNumber,
+        CustomerId = customerId,
         RegistrationNumber = registrationNumber,
         VehicleTypeId = vehicleTypeId,
         CheckoutTimestamp = checkoutTimestamp,
@@ -428,6 +445,7 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
             .AddColumn("");
 
         successTable.AddRow("[green]Booking Number:[/]", $"[white bold]{result.Value!.BookingNumber.EscapeMarkup()}[/]");
+        successTable.AddRow("[green]Customer ID:[/]", $"[white]{result.Value.CustomerId.EscapeMarkup()}[/]");
         successTable.AddRow("[green]Registration:[/]", $"[white]{result.Value.RegistrationNumber.EscapeMarkup()}[/]");
         successTable.AddRow("[green]Vehicle Type:[/]", $"[white]{result.Value.VehicleTypeId.EscapeMarkup()}[/]");
         successTable.AddRow("[green]Checkout Time:[/]", $"[white]{result.Value.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}[/]");
@@ -477,6 +495,7 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
     var cancelRental = new Rental
     {
         BookingNumber = "__CANCEL__",
+        CustomerId = "",
         RegistrationNumber = "",
         VehicleTypeId = "",
         CheckoutTimestamp = DateTimeOffset.MinValue,
@@ -522,6 +541,7 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
         .AddColumn("");
 
     checkoutInfoTable.AddRow("[cyan]Booking Number:[/]", $"[white]{selectedRental.BookingNumber.EscapeMarkup()}[/]");
+    checkoutInfoTable.AddRow("[cyan]Customer ID:[/]", $"[white]{selectedRental.CustomerId.EscapeMarkup()}[/]");
     checkoutInfoTable.AddRow("[cyan]Vehicle:[/]", $"[white]{selectedRental.RegistrationNumber.EscapeMarkup()}[/]");
     checkoutInfoTable.AddRow("[cyan]Type:[/]", $"[white]{selectedRental.VehicleTypeId.EscapeMarkup()}[/]");
     checkoutInfoTable.AddRow("[cyan]Checked Out:[/]", $"[white]{selectedRental.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}[/]");
@@ -537,9 +557,9 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
     AnsiConsole.WriteLine();
 
     var returnTimestampInput = AnsiConsole.Prompt(
-        new TextPrompt<string>("[cyan]Return Timestamp[/] (ISO 8601, e.g., 2024-03-22T14:30:00+01:00) [grey]or type 'esc' to cancel[/]:")
+        new TextPrompt<string>("[cyan]Return Timestamp[/] (yyyy-MM-dd HH:mm, e.g., 2024-03-22 14:30) [grey]or type 'esc' to cancel[/]:")
             .PromptStyle("white")
-            .DefaultValue(DateTimeOffset.Now.ToString("o"))
+            .DefaultValue(DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm"))
             .AllowEmpty());
 
     if (returnTimestampInput.Equals("esc", StringComparison.OrdinalIgnoreCase))
@@ -683,6 +703,7 @@ static async Task ListRentalsAsync(IRentalRepository repository)
             .Border(TableBorder.Rounded)
             .BorderColor(Color.Yellow)
             .AddColumn(new TableColumn("[yellow]Booking #[/]"))
+            .AddColumn(new TableColumn("[yellow]Customer[/]"))
             .AddColumn(new TableColumn("[yellow]Vehicle[/]"))
             .AddColumn(new TableColumn("[yellow]Type[/]"))
             .AddColumn(new TableColumn("[yellow]Checked Out[/]"))
@@ -692,6 +713,7 @@ static async Task ListRentalsAsync(IRentalRepository repository)
         {
             activeTable.AddRow(
                 $"[white]{rental.BookingNumber.EscapeMarkup()}[/]",
+                $"[white]{rental.CustomerId.EscapeMarkup()}[/]",
                 $"[white]{rental.RegistrationNumber.EscapeMarkup()}[/]",
                 $"[grey]{rental.VehicleTypeId.EscapeMarkup()}[/]",
                 $"[white]{rental.CheckoutTimestamp:yyyy-MM-dd HH:mm}[/]",
@@ -716,6 +738,7 @@ static async Task ListRentalsAsync(IRentalRepository repository)
             .Border(TableBorder.Rounded)
             .BorderColor(Color.Green)
             .AddColumn(new TableColumn("[green]Booking #[/]"))
+            .AddColumn(new TableColumn("[green]Customer[/]"))
             .AddColumn(new TableColumn("[green]Vehicle[/]"))
             .AddColumn(new TableColumn("[green]Type[/]"))
             .AddColumn(new TableColumn("[green]Returned[/]"))
@@ -727,6 +750,7 @@ static async Task ListRentalsAsync(IRentalRepository repository)
             var distance = rental.ReturnOdometer!.Value - rental.CheckoutOdometer;
             completedTable.AddRow(
                 $"[white]{rental.BookingNumber.EscapeMarkup()}[/]",
+                $"[white]{rental.CustomerId.EscapeMarkup()}[/]",
                 $"[white]{rental.RegistrationNumber.EscapeMarkup()}[/]",
                 $"[grey]{rental.VehicleTypeId.EscapeMarkup()}[/]",
                 $"[white]{rental.ReturnTimestamp:yyyy-MM-dd HH:mm}[/]",

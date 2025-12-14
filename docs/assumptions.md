@@ -8,3 +8,4 @@
 6. Vehicle License plates are unique.
 7. There are vehicles that don't have license plates - we don't support those.
 8. There are vehicles that don't rent by the km or day - we don't support those.
+9. We don't want to keep social security numbers or eqv right now, so we let users rent with customerId.

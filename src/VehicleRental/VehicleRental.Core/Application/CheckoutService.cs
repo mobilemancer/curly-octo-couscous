@@ -35,6 +35,11 @@ public class CheckoutService
             return Result<RegisterCheckoutResponse>.Failure("Booking number is required.");
         }
 
+        if (string.IsNullOrWhiteSpace(request.CustomerId))
+        {
+            return Result<RegisterCheckoutResponse>.Failure("Customer ID is required.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.RegistrationNumber))
         {
             return Result<RegisterCheckoutResponse>.Failure("Registration number is required.");
@@ -101,6 +106,7 @@ public class CheckoutService
         var rental = new Rental
         {
             BookingNumber = request.BookingNumber.Trim(),
+            CustomerId = request.CustomerId.Trim(),
             RegistrationNumber = request.RegistrationNumber.Trim(),
             VehicleTypeId = vehicleTypeId,
             CheckoutTimestamp = request.CheckoutTimestamp,
@@ -109,12 +115,13 @@ public class CheckoutService
 
         await _rentalRepository.AddAsync(rental);
 
-        _logger.LogInformation("Checkout registered: booking {BookingNumber}, vehicle {RegistrationNumber}, type {VehicleTypeId}",
-            rental.BookingNumber, rental.RegistrationNumber, rental.VehicleTypeId);
+        _logger.LogInformation("Checkout registered: booking {BookingNumber}, customer {CustomerId}, vehicle {RegistrationNumber}, type {VehicleTypeId}",
+            rental.BookingNumber, rental.CustomerId, rental.RegistrationNumber, rental.VehicleTypeId);
 
         return Result<RegisterCheckoutResponse>.Success(new RegisterCheckoutResponse
         {
             BookingNumber = rental.BookingNumber,
+            CustomerId = rental.CustomerId,
             RegistrationNumber = rental.RegistrationNumber,
             VehicleTypeId = rental.VehicleTypeId,
             CheckoutTimestamp = rental.CheckoutTimestamp

@@ -11,6 +11,11 @@ public sealed record RegisterCheckoutRequest
     public required string BookingNumber { get; init; }
 
     /// <summary>
+    /// Gets the customer ID for this rental.
+    /// </summary>
+    public required string CustomerId { get; init; }
+
+    /// <summary>
     /// Gets the registration number of the vehicle to checkout.
     /// </summary>
     public required string RegistrationNumber { get; init; }

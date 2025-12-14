@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 using VehicleRental.Core.Application;
 using VehicleRental.Core.Ports;
 using VehicleRental.Core.Pricing;
@@ -19,10 +20,9 @@ var builder = Host.CreateApplicationBuilder(args);
 // Add configuration from appsettings.json
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
 
-// Configure logging
+// Configure logging - suppress console output for clean UI
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Logging.SetMinimumLevel(LogLevel.Warning); // Only show warnings and errors
 
 // Load server configuration
 var serverConfig = builder.Configuration.GetSection("Server").Get<ServerConfiguration>();
@@ -70,16 +70,11 @@ if (!string.IsNullOrWhiteSpace(serverConfig.BaseUrl))
 
         return store;
     });
-
-    Console.WriteLine($"🌐 Server: {serverConfig.BaseUrl}");
-    Console.WriteLine($"👤 Client: {serverConfig.ClientId}");
-    Console.WriteLine($"📡 Real-time configuration updates enabled");
 }
 else
 {
     // Fallback to local in-memory store
     builder.Services.AddSingleton<IVehicleTypeStore, InMemoryVehicleTypeStore>();
-    Console.WriteLine("⚠️  Using local in-memory vehicle type store (no server connection)");
 }
 
 // Build the host
@@ -89,17 +84,14 @@ var host = builder.Build();
 // Application Entry Point
 // =================================================================
 
-var logger = host.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("Vehicle Rental CLI starting...");
-
 try
 {
     // Display menu and process commands
-    await RunInteractiveCliAsync(host.Services, logger);
+    await RunInteractiveCliAsync(host.Services, serverConfig);
 }
 catch (Exception ex)
 {
-    logger.LogError(ex, "Fatal error in CLI");
+    AnsiConsole.WriteException(ex);
     return 1;
 }
 finally
@@ -118,151 +110,203 @@ return 0;
 // Interactive CLI Methods
 // =================================================================
 
-static async Task RunInteractiveCliAsync(IServiceProvider services, ILogger logger)
+static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfiguration serverConfig)
 {
     var checkoutService = services.GetRequiredService<CheckoutService>();
     var returnService = services.GetRequiredService<ReturnService>();
     var vehicleTypeStore = services.GetRequiredService<IVehicleTypeStore>();
     var rentalRepository = services.GetRequiredService<IRentalRepository>();
 
-    Console.WriteLine();
-    Console.WriteLine("╔════════════════════════════════════════════════════════════╗");
-    Console.WriteLine("║       Vehicle Rental Management System - CLI v2.0         ║");
-    Console.WriteLine("║               Client-Server Architecture                   ║");
-    Console.WriteLine("╚════════════════════════════════════════════════════════════╝");
-    Console.WriteLine();
+    AnsiConsole.Clear();
+
+    // Display banner
+    AnsiConsole.Write(
+        new FigletText("Vehicle Rental")
+            .Centered()
+            .Color(Color.Cyan1));
+
+    var panel = new Panel("[cyan1]Client-Server Architecture[/]\n[grey]Version 2.0[/]")
+    {
+        Border = BoxBorder.Rounded,
+        BorderStyle = new Style(Color.Cyan1),
+        Padding = new Padding(1, 0)
+    };
+    AnsiConsole.Write(Align.Center(panel));
+
+    // Display connection status
+    var statusTable = new Table()
+        .Border(TableBorder.None)
+        .HideHeaders()
+        .AddColumn(new TableColumn("").Centered());
+
+    if (!string.IsNullOrWhiteSpace(serverConfig.BaseUrl))
+    {
+        statusTable.AddRow($"[green]●[/] Server: [cyan]{serverConfig.BaseUrl}[/]");
+        statusTable.AddRow($"[green]●[/] Client: [cyan]{serverConfig.ClientId}[/]");
+        statusTable.AddRow($"[green]●[/] Real-time updates: [green]Enabled[/]");
+    }
+    else
+    {
+        statusTable.AddRow($"[yellow]●[/] Mode: [yellow]Local (No server connection)[/]");
+    }
+
+    AnsiConsole.Write(statusTable.Centered());
+    AnsiConsole.WriteLine();
 
     while (true)
     {
-        Console.WriteLine();
-        Console.WriteLine("═══════════════════════════════════════════════════════════");
-        Console.WriteLine(" Available Commands:");
-        Console.WriteLine("═══════════════════════════════════════════════════════════");
-        Console.WriteLine("  1. list-types     - Show all vehicle types");
-        Console.WriteLine("  2. checkout       - Check out a vehicle");
-        Console.WriteLine("  3. return         - Return a vehicle");
-        Console.WriteLine("  4. list-rentals   - Show all active rentals");
-        Console.WriteLine("  5. help           - Show this help");
-        Console.WriteLine("  6. exit           - Exit application");
-        Console.WriteLine("═══════════════════════════════════════════════════════════");
-        Console.Write("\nEnter command: ");
-
-        var command = Console.ReadLine()?.Trim().ToLowerInvariant();
+        var command = AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("[cyan1]What would you like to do?[/]")
+                .PageSize(10)
+                .AddChoices(new[] {
+                    "📋 List Vehicle Types",
+                    "🚗 Check Out Vehicle",
+                    "🏁 Return Vehicle",
+                    "📊 List All Rentals",
+                    "🚪 Exit"
+                }));
 
         try
         {
             switch (command)
             {
-                case "1":
-                case "list-types":
-                    await ListVehicleTypesAsync(vehicleTypeStore, logger);
+                case "📋 List Vehicle Types":
+                    await ListVehicleTypesAsync(vehicleTypeStore);
                     break;
 
-                case "2":
-                case "checkout":
-                    await CheckoutVehicleAsync(checkoutService, vehicleTypeStore, logger);
+                case "🚗 Check Out Vehicle":
+                    await CheckoutVehicleAsync(checkoutService, vehicleTypeStore);
                     break;
 
-                case "3":
-                case "return":
-                    await ReturnVehicleAsync(returnService, rentalRepository, logger);
+                case "🏁 Return Vehicle":
+                    await ReturnVehicleAsync(returnService, rentalRepository);
                     break;
 
-                case "4":
-                case "list-rentals":
-                    await ListRentalsAsync(rentalRepository, logger);
+                case "📊 List All Rentals":
+                    await ListRentalsAsync(rentalRepository);
                     break;
 
-                case "5":
-                case "help":
-                    // Help is displayed by default
-                    break;
-
-                case "6":
-                case "exit":
-                    Console.WriteLine("\n👋 Thank you for using Vehicle Rental Management System!");
+                case "🚪 Exit":
+                    AnsiConsole.MarkupLine("\n[cyan]👋 Thank you for using Vehicle Rental Management System![/]");
                     return;
-
-                default:
-                    Console.WriteLine("\n❌ Invalid command. Type 'help' to see available commands.");
-                    break;
             }
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error processing command: {Command}", command);
-            Console.WriteLine($"\n❌ Error: {ex.Message}");
+            AnsiConsole.WriteLine();
+            AnsiConsole.Write(
+                new Panel(new Markup($"[red]{ex.Message.EscapeMarkup()}[/]"))
+                {
+                    Header = new PanelHeader("[red]Error[/]"),
+                    Border = BoxBorder.Rounded,
+                    BorderStyle = new Style(Color.Red)
+                });
         }
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[grey]Press any key to continue...[/]");
+        Console.ReadKey(true);
+        AnsiConsole.Clear();
     }
 }
 
-static async Task ListVehicleTypesAsync(IVehicleTypeStore store, ILogger logger)
+static async Task ListVehicleTypesAsync(IVehicleTypeStore store)
 {
-    Console.WriteLine("\n📋 Available Vehicle Types:");
-    Console.WriteLine("─────────────────────────────────────────────────────────");
-
-    var vehicleTypes = await store.GetAllAsync();
+    var vehicleTypes = await AnsiConsole.Status()
+        .Spinner(Spinner.Known.Dots)
+        .StartAsync("Loading vehicle types...", async ctx => await store.GetAllAsync());
 
     if (!vehicleTypes.Any())
     {
-        Console.WriteLine("  No vehicle types available.");
+        AnsiConsole.MarkupLine("\n[yellow]No vehicle types available.[/]");
         return;
     }
 
+    var table = new Table()
+        .Border(TableBorder.Rounded)
+        .BorderColor(Color.Cyan1)
+        .AddColumn(new TableColumn("[cyan1]ID[/]").Centered())
+        .AddColumn(new TableColumn("[cyan1]Name[/]"))
+        .AddColumn(new TableColumn("[cyan1]Pricing Formula[/]"))
+        .AddColumn(new TableColumn("[cyan1]Description[/]"));
+
     foreach (var vt in vehicleTypes)
     {
-        Console.WriteLine($"\n  ID: {vt.VehicleTypeId}");
-        Console.WriteLine($"  Name: {vt.DisplayName}");
-        Console.WriteLine($"  Formula: {vt.PricingFormula}");
-        if (!string.IsNullOrEmpty(vt.Description))
-        {
-            Console.WriteLine($"  Description: {vt.Description}");
-        }
+        table.AddRow(
+            $"[cyan]{vt.VehicleTypeId.EscapeMarkup()}[/]",
+            $"[white]{vt.DisplayName.EscapeMarkup()}[/]",
+            $"[grey]{vt.PricingFormula.EscapeMarkup()}[/]",
+            $"[grey]{(string.IsNullOrEmpty(vt.Description) ? "-" : vt.Description.EscapeMarkup())}[/]"
+        );
     }
+
+    AnsiConsole.WriteLine();
+    AnsiConsole.Write(
+        new Panel(table)
+        {
+            Header = new PanelHeader(" 📋 Vehicle Types ", Justify.Left),
+            Border = BoxBorder.Rounded,
+            BorderStyle = new Style(Color.Cyan1)
+        });
 }
 
-static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStore store, ILogger logger)
+static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStore store)
 {
-    Console.WriteLine("\n🚗 Vehicle Checkout");
-    Console.WriteLine("─────────────────────────────────────────────────────────");
+    AnsiConsole.WriteLine();
+    AnsiConsole.Write(
+        new Rule("[cyan1]🚗 Vehicle Checkout[/]")
+        {
+            Justification = Justify.Left,
+            Style = new Style(Color.Cyan1)
+        });
+    AnsiConsole.WriteLine();
 
     // Show available types
     var vehicleTypes = await store.GetAllAsync();
-    Console.WriteLine("\nAvailable vehicle types:");
-    foreach (var vt in vehicleTypes)
+    var typesList = vehicleTypes.ToList();
+
+    if (typesList.Any())
     {
-        Console.WriteLine($"  - {vt.VehicleTypeId} ({vt.DisplayName})");
+        var typesTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Grey)
+            .AddColumn("[grey]Type ID[/]")
+            .AddColumn("[grey]Name[/]");
+
+        foreach (var vt in typesList)
+        {
+            typesTable.AddRow(vt.VehicleTypeId.EscapeMarkup(), vt.DisplayName.EscapeMarkup());
+        }
+
+        AnsiConsole.Write(typesTable);
+        AnsiConsole.WriteLine();
     }
 
-    Console.Write("\nEnter Vehicle Registration Number (e.g., license plate, callsign): ");
-    var registrationNumber = Console.ReadLine()?.Trim();
-    if (string.IsNullOrWhiteSpace(registrationNumber))
-    {
-        Console.WriteLine("❌ Registration number is required.");
-        return;
-    }
+    var registrationNumber = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Vehicle Registration Number[/] (e.g., license plate, callsign):")
+            .PromptStyle("white")
+            .ValidationErrorMessage("[red]Registration number is required[/]")
+            .Validate(input => !string.IsNullOrWhiteSpace(input)));
 
     // Generate a unique, user-friendly booking number
     var bookingNumber = $"BK-{DateTimeOffset.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..8].ToUpperInvariant()}";
 
-    Console.Write("Enter Vehicle Type ID (optional, press Enter to skip): ");
-    var vehicleTypeId = Console.ReadLine()?.Trim();
+    var vehicleTypeId = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Vehicle Type ID[/] (optional, press Enter to skip):")
+            .PromptStyle("white")
+            .AllowEmpty());
 
-    Console.Write("Enter Checkout Timestamp (ISO 8601, e.g., 2024-03-20T10:00:00+01:00): ");
-    var checkoutTimestampStr = Console.ReadLine()?.Trim();
-    if (string.IsNullOrWhiteSpace(checkoutTimestampStr) || !DateTimeOffset.TryParse(checkoutTimestampStr, out var checkoutTimestamp))
-    {
-        Console.WriteLine("❌ Invalid checkout timestamp.");
-        return;
-    }
+    var checkoutTimestamp = AnsiConsole.Prompt(
+        new TextPrompt<DateTimeOffset>("[cyan]Checkout Timestamp[/] (ISO 8601, e.g., 2024-03-20T10:00:00+01:00):")
+            .PromptStyle("white")
+            .ValidationErrorMessage("[red]Invalid timestamp format[/]"));
 
-    Console.Write("Enter Odometer Reading (km): ");
-    var odometerStr = Console.ReadLine()?.Trim();
-    if (!decimal.TryParse(odometerStr, out var odometer))
-    {
-        Console.WriteLine("❌ Invalid odometer reading.");
-        return;
-    }
+    var odometer = AnsiConsole.Prompt(
+        new TextPrompt<decimal>("[cyan]Odometer Reading[/] (km):")
+            .PromptStyle("white")
+            .ValidationErrorMessage("[red]Invalid odometer reading[/]")
+            .Validate(value => value >= 0 ? ValidationResult.Success() : ValidationResult.Error("[red]Odometer cannot be negative[/]")));
 
     var request = new RegisterCheckoutRequest
     {
@@ -273,65 +317,83 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
         CheckoutOdometer = odometer
     };
 
-    var result = await service.RegisterCheckoutAsync(request);
+    var result = await AnsiConsole.Status()
+        .Spinner(Spinner.Known.Dots)
+        .StartAsync("Processing checkout...", async ctx => await service.RegisterCheckoutAsync(request));
+
+    AnsiConsole.WriteLine();
 
     if (result.IsSuccess)
     {
-        Console.WriteLine($"\n✅ Vehicle checked out successfully!");
-        Console.WriteLine($"   Booking Number: {result.Value!.BookingNumber}");
-        Console.WriteLine($"   Registration: {result.Value.RegistrationNumber}");
-        Console.WriteLine($"   Vehicle Type: {result.Value.VehicleTypeId}");
+        var successTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Green)
+            .HideHeaders()
+            .AddColumn("")
+            .AddColumn("");
+
+        successTable.AddRow("[green]Booking Number:[/]", $"[white bold]{result.Value!.BookingNumber.EscapeMarkup()}[/]");
+        successTable.AddRow("[green]Registration:[/]", $"[white]{result.Value.RegistrationNumber.EscapeMarkup()}[/]");
+        successTable.AddRow("[green]Vehicle Type:[/]", $"[white]{result.Value.VehicleTypeId.EscapeMarkup()}[/]");
+        successTable.AddRow("[green]Checkout Time:[/]", $"[white]{result.Value.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}[/]");
+
+        AnsiConsole.Write(
+            new Panel(successTable)
+            {
+                Header = new PanelHeader(" ✅ Checkout Successful ", Justify.Center),
+                Border = BoxBorder.Double,
+                BorderStyle = new Style(Color.Green)
+            });
     }
     else
     {
-        Console.WriteLine($"\n❌ Checkout failed: {result.Error}");
+        AnsiConsole.Write(
+            new Panel(new Markup($"[red]{result.Error.EscapeMarkup()}[/]"))
+            {
+                Header = new PanelHeader(" ❌ Checkout Failed ", Justify.Center),
+                Border = BoxBorder.Rounded,
+                BorderStyle = new Style(Color.Red)
+            });
     }
 }
 
-static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository repository, ILogger logger)
+static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository repository)
 {
-    Console.WriteLine("\n🏁 Vehicle Return");
-    Console.WriteLine("─────────────────────────────────────────────────────────");
+    AnsiConsole.WriteLine();
+    AnsiConsole.Write(
+        new Rule("[cyan1]🏁 Vehicle Return[/]")
+        {
+            Justification = Justify.Left,
+            Style = new Style(Color.Cyan1)
+        });
+    AnsiConsole.WriteLine();
 
-    Console.Write("\nEnter Booking Number: ");
-    var bookingNumber = Console.ReadLine()?.Trim();
-    if (string.IsNullOrWhiteSpace(bookingNumber))
-    {
-        Console.WriteLine("❌ Booking number is required.");
-        return;
-    }
+    var bookingNumber = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Booking Number:[/]")
+            .PromptStyle("white")
+            .ValidationErrorMessage("[red]Booking number is required[/]")
+            .Validate(input => !string.IsNullOrWhiteSpace(input)));
 
-    Console.Write("Enter Return Timestamp (ISO 8601, e.g., 2024-03-22T14:30:00+01:00): ");
-    var returnTimestampStr = Console.ReadLine()?.Trim();
-    if (string.IsNullOrWhiteSpace(returnTimestampStr) || !DateTimeOffset.TryParse(returnTimestampStr, out var returnTimestamp))
-    {
-        Console.WriteLine("❌ Invalid return timestamp.");
-        return;
-    }
+    var returnTimestamp = AnsiConsole.Prompt(
+        new TextPrompt<DateTimeOffset>("[cyan]Return Timestamp[/] (ISO 8601, e.g., 2024-03-22T14:30:00+01:00):")
+            .PromptStyle("white")
+            .ValidationErrorMessage("[red]Invalid timestamp format[/]"));
 
-    Console.Write("Enter Odometer Reading (km): ");
-    var odometerStr = Console.ReadLine()?.Trim();
-    if (!decimal.TryParse(odometerStr, out var odometer))
-    {
-        Console.WriteLine("❌ Invalid odometer reading.");
-        return;
-    }
+    var odometer = AnsiConsole.Prompt(
+        new TextPrompt<decimal>("[cyan]Odometer Reading[/] (km):")
+            .PromptStyle("white")
+            .ValidationErrorMessage("[red]Invalid odometer reading[/]")
+            .Validate(value => value >= 0 ? ValidationResult.Success() : ValidationResult.Error("[red]Odometer cannot be negative[/]")));
 
-    Console.Write("Enter Base Day Rate (SEK): ");
-    var baseDayRateStr = Console.ReadLine()?.Trim();
-    if (!decimal.TryParse(baseDayRateStr, out var baseDayRate))
-    {
-        Console.WriteLine("❌ Invalid base day rate.");
-        return;
-    }
+    var baseDayRate = AnsiConsole.Prompt(
+        new TextPrompt<decimal>("[cyan]Base Day Rate[/] (SEK):")
+            .PromptStyle("white")
+            .ValidationErrorMessage("[red]Invalid base day rate[/]"));
 
-    Console.Write("Enter Base Kilometer Price (SEK): ");
-    var baseKmPriceStr = Console.ReadLine()?.Trim();
-    if (!decimal.TryParse(baseKmPriceStr, out var baseKmPrice))
-    {
-        Console.WriteLine("❌ Invalid base kilometer price.");
-        return;
-    }
+    var baseKmPrice = AnsiConsole.Prompt(
+        new TextPrompt<decimal>("[cyan]Base Kilometer Price[/] (SEK):")
+            .PromptStyle("white")
+            .ValidationErrorMessage("[red]Invalid base kilometer price[/]"));
 
     var request = new RegisterReturnRequest
     {
@@ -345,78 +407,138 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
         }
     };
 
-    var result = await service.RegisterReturnAsync(request);
+    var result = await AnsiConsole.Status()
+        .Spinner(Spinner.Known.Dots)
+        .StartAsync("Processing return and calculating price...", async ctx => await service.RegisterReturnAsync(request));
+
+    AnsiConsole.WriteLine();
 
     if (result.IsSuccess)
     {
         var response = result.Value!;
-        Console.WriteLine($"\n✅ Vehicle returned successfully!");
-        Console.WriteLine($"\n╔════════════════════════════════════════════════════════════╗");
-        Console.WriteLine($"║                        INVOICE                             ║");
-        Console.WriteLine($"╚════════════════════════════════════════════════════════════╝");
-        Console.WriteLine($"  Booking Number: {response.BookingNumber}");
-        Console.WriteLine($"  Days: {response.Days}");
-        Console.WriteLine($"  Kilometers: {response.KilometersDriven:F2} km");
-        Console.WriteLine($"  ──────────────────────────────────────────────────────────");
-        Console.WriteLine($"  TOTAL: {response.RentalPrice:F2} SEK");
-        Console.WriteLine($"  ══════════════════════════════════════════════════════════");
+
+        var invoiceTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Green)
+            .HideHeaders()
+            .AddColumn("")
+            .AddColumn(new TableColumn("").RightAligned());
+
+        invoiceTable.AddRow("[cyan]Booking Number:[/]", $"[white]{response.BookingNumber.EscapeMarkup()}[/]");
+        invoiceTable.AddEmptyRow();
+        invoiceTable.AddRow("[grey]Days:[/]", $"[white]{response.Days}[/]");
+        invoiceTable.AddRow("[grey]Kilometers:[/]", $"[white]{response.KilometersDriven:F2} km[/]");
+        invoiceTable.AddEmptyRow();
+        invoiceTable.AddRow("[green bold]TOTAL:[/]", $"[green bold]{response.RentalPrice:F2} SEK[/]");
+
+        AnsiConsole.Write(
+            new Panel(invoiceTable)
+            {
+                Header = new PanelHeader(" 🧾 INVOICE ", Justify.Center),
+                Border = BoxBorder.Double,
+                BorderStyle = new Style(Color.Green)
+            });
     }
     else
     {
-        Console.WriteLine($"\n❌ Return failed: {result.Error}");
+        AnsiConsole.Write(
+            new Panel(new Markup($"[red]{result.Error.EscapeMarkup()}[/]"))
+            {
+                Header = new PanelHeader(" ❌ Return Failed ", Justify.Center),
+                Border = BoxBorder.Rounded,
+                BorderStyle = new Style(Color.Red)
+            });
     }
 }
 
-static async Task ListRentalsAsync(IRentalRepository repository, ILogger logger)
+static async Task ListRentalsAsync(IRentalRepository repository)
 {
-    Console.WriteLine("\n📊 Rentals:");
-    Console.WriteLine("─────────────────────────────────────────────────────────");
+    var rentals = await AnsiConsole.Status()
+        .Spinner(Spinner.Known.Dots)
+        .StartAsync("Loading rentals...", async ctx => await repository.GetAllAsync());
 
-    var rentals = await repository.GetAllAsync();
     var rentalsList = rentals.ToList();
 
     if (!rentalsList.Any())
     {
-        Console.WriteLine("  No rentals found.");
+        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[yellow]No rentals found.[/]");
         return;
     }
 
     var activeRentals = rentalsList.Where(r => r.IsActive).ToList();
     var completedRentals = rentalsList.Where(r => !r.IsActive).ToList();
 
+    AnsiConsole.WriteLine();
+
     if (activeRentals.Any())
     {
-        Console.WriteLine("\n🚗 Active Rentals:");
-        Console.WriteLine("═══════════════════════════════════════════════════════════");
+        var activeTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Yellow)
+            .AddColumn(new TableColumn("[yellow]Booking #[/]"))
+            .AddColumn(new TableColumn("[yellow]Vehicle[/]"))
+            .AddColumn(new TableColumn("[yellow]Type[/]"))
+            .AddColumn(new TableColumn("[yellow]Checked Out[/]"))
+            .AddColumn(new TableColumn("[yellow]Odometer[/]").RightAligned());
+
         foreach (var rental in activeRentals)
         {
-            Console.WriteLine($"\n  Booking Number: {rental.BookingNumber}");
-            Console.WriteLine($"  Vehicle: {rental.RegistrationNumber}");
-            Console.WriteLine($"  Type: {rental.VehicleTypeId}");
-            Console.WriteLine($"  Checked Out: {rental.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}");
-            Console.WriteLine($"  Odometer at Checkout: {rental.CheckoutOdometer:F1} km");
-            Console.WriteLine($"  Status: ✅ Active");
+            activeTable.AddRow(
+                $"[white]{rental.BookingNumber.EscapeMarkup()}[/]",
+                $"[white]{rental.RegistrationNumber.EscapeMarkup()}[/]",
+                $"[grey]{rental.VehicleTypeId.EscapeMarkup()}[/]",
+                $"[white]{rental.CheckoutTimestamp:yyyy-MM-dd HH:mm}[/]",
+                $"[white]{rental.CheckoutOdometer:F1} km[/]"
+            );
         }
+
+        AnsiConsole.Write(
+            new Panel(activeTable)
+            {
+                Header = new PanelHeader($" 🚗 Active Rentals ({activeRentals.Count}) ", Justify.Left),
+                Border = BoxBorder.Rounded,
+                BorderStyle = new Style(Color.Yellow)
+            });
+
+        AnsiConsole.WriteLine();
     }
 
     if (completedRentals.Any())
     {
-        Console.WriteLine("\n🏁 Completed Rentals:");
-        Console.WriteLine("═══════════════════════════════════════════════════════════");
+        var completedTable = new Table()
+            .Border(TableBorder.Rounded)
+            .BorderColor(Color.Green)
+            .AddColumn(new TableColumn("[green]Booking #[/]"))
+            .AddColumn(new TableColumn("[green]Vehicle[/]"))
+            .AddColumn(new TableColumn("[green]Type[/]"))
+            .AddColumn(new TableColumn("[green]Returned[/]"))
+            .AddColumn(new TableColumn("[green]Distance[/]").RightAligned())
+            .AddColumn(new TableColumn("[green]Price[/]").RightAligned());
+
         foreach (var rental in completedRentals)
         {
-            Console.WriteLine($"\n  Booking Number: {rental.BookingNumber}");
-            Console.WriteLine($"  Vehicle: {rental.RegistrationNumber}");
-            Console.WriteLine($"  Type: {rental.VehicleTypeId}");
-            Console.WriteLine($"  Checked Out: {rental.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}");
-            Console.WriteLine($"  Returned: {rental.ReturnTimestamp:yyyy-MM-dd HH:mm:ss zzz}");
-            Console.WriteLine($"  Distance: {(rental.ReturnOdometer!.Value - rental.CheckoutOdometer):F1} km");
-            Console.WriteLine($"  Total Price: {rental.RentalPrice:F2} SEK");
-            Console.WriteLine($"  Status: ✔️  Completed");
+            var distance = rental.ReturnOdometer!.Value - rental.CheckoutOdometer;
+            completedTable.AddRow(
+                $"[white]{rental.BookingNumber.EscapeMarkup()}[/]",
+                $"[white]{rental.RegistrationNumber.EscapeMarkup()}[/]",
+                $"[grey]{rental.VehicleTypeId.EscapeMarkup()}[/]",
+                $"[white]{rental.ReturnTimestamp:yyyy-MM-dd HH:mm}[/]",
+                $"[white]{distance:F1} km[/]",
+                $"[green]{rental.RentalPrice:F2} SEK[/]"
+            );
         }
+
+        AnsiConsole.Write(
+            new Panel(completedTable)
+            {
+                Header = new PanelHeader($" 🏁 Completed Rentals ({completedRentals.Count}) ", Justify.Left),
+                Border = BoxBorder.Rounded,
+                BorderStyle = new Style(Color.Green)
+            });
     }
 
-    Console.WriteLine("\n═══════════════════════════════════════════════════════════");
-    Console.WriteLine($"  Total: {rentalsList.Count} rentals ({activeRentals.Count} active, {completedRentals.Count} completed)");
+    AnsiConsole.WriteLine();
+    AnsiConsole.MarkupLine($"[grey]Total: {rentalsList.Count} rentals ({activeRentals.Count} active, {completedRentals.Count} completed)[/]");
 }
 

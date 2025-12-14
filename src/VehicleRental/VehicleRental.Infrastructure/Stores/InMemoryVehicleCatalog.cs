@@ -38,6 +38,12 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
         return Task.FromResult(vehicle);
     }
 
+    public Task<IReadOnlyCollection<Vehicle>> GetAllAsync()
+    {
+        var vehicles = _vehicles.Values.ToList();
+        return Task.FromResult<IReadOnlyCollection<Vehicle>>(vehicles);
+    }
+
     private void LoadFromFile(string filePath)
     {
         try
@@ -84,7 +90,8 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
                     var vehicle = new Vehicle
                     {
                         RegistrationNumber = dto.RegistrationNumber.Trim(),
-                        VehicleTypeId = normalizedTypeId
+                        VehicleTypeId = normalizedTypeId,
+                        CurrentOdometer = dto.CurrentOdometer
                     };
 
                     if (!_vehicles.TryAdd(vehicle.RegistrationNumber, vehicle))
@@ -118,5 +125,6 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
     {
         public string RegistrationNumber { get; set; } = string.Empty;
         public string VehicleTypeId { get; set; } = string.Empty;
+        public decimal CurrentOdometer { get; set; }
     }
 }

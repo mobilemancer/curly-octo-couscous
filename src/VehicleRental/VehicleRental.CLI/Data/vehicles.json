@@ -1,62 +1,77 @@
 [
     {
         "registrationNumber": "ABC123",
-        "vehicleTypeId": "small-car"
+        "vehicleTypeId": "small-car",
+        "currentOdometer": 15000
     },
     {
         "registrationNumber": "ABC124",
-        "vehicleTypeId": "small-car"
+        "vehicleTypeId": "small-car",
+        "currentOdometer": 22000
     },
     {
         "registrationNumber": "ABC125",
-        "vehicleTypeId": "small-car"
+        "vehicleTypeId": "small-car",
+        "currentOdometer": 8500
     },
     {
         "registrationNumber": "ABC126",
-        "vehicleTypeId": "small-car"
+        "vehicleTypeId": "small-car",
+        "currentOdometer": 31000
     },
     {
         "registrationNumber": "ABC127",
-        "vehicleTypeId": "small-car"
+        "vehicleTypeId": "small-car",
+        "currentOdometer": 19500
     },
     {
         "registrationNumber": "DEF456",
-        "vehicleTypeId": "station-wagon"
+        "vehicleTypeId": "station-wagon",
+        "currentOdometer": 45000
     },
     {
         "registrationNumber": "DEF457",
-        "vehicleTypeId": "station-wagon"
+        "vehicleTypeId": "station-wagon",
+        "currentOdometer": 52000
     },
     {
         "registrationNumber": "DEF458",
-        "vehicleTypeId": "station-wagon"
+        "vehicleTypeId": "station-wagon",
+        "currentOdometer": 38000
     },
     {
         "registrationNumber": "DEF459",
-        "vehicleTypeId": "station-wagon"
+        "vehicleTypeId": "station-wagon",
+        "currentOdometer": 61000
     },
     {
         "registrationNumber": "DEF460",
-        "vehicleTypeId": "station-wagon"
+        "vehicleTypeId": "station-wagon",
+        "currentOdometer": 27500
     },
     {
         "registrationNumber": "GHI789",
-        "vehicleTypeId": "truck"
+        "vehicleTypeId": "truck",
+        "currentOdometer": 78000
     },
     {
         "registrationNumber": "GHI790",
-        "vehicleTypeId": "truck"
+        "vehicleTypeId": "truck",
+        "currentOdometer": 95000
     },
     {
         "registrationNumber": "GHI791",
-        "vehicleTypeId": "truck"
+        "vehicleTypeId": "truck",
+        "currentOdometer": 67500
     },
     {
         "registrationNumber": "GHI792",
-        "vehicleTypeId": "truck"
+        "vehicleTypeId": "truck",
+        "currentOdometer": 82000
     },
     {
         "registrationNumber": "GHI793",
-        "vehicleTypeId": "truck"
+        "vehicleTypeId": "truck",
+        "currentOdometer": 49000
     }
 ]

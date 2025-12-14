@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
 using VehicleRental.Core.Application;
+using VehicleRental.Core.Domain;
 using VehicleRental.Core.Ports;
 using VehicleRental.Core.Pricing;
 using VehicleRental.CLI.Configuration;
@@ -152,6 +153,7 @@ static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfig
     var checkoutService = services.GetRequiredService<CheckoutService>();
     var returnService = services.GetRequiredService<ReturnService>();
     var vehicleTypeStore = services.GetRequiredService<IVehicleTypeStore>();
+    var vehicleCatalog = services.GetRequiredService<IVehicleCatalog>();
     var rentalRepository = services.GetRequiredService<IRentalRepository>();
 
     AnsiConsole.Clear();
@@ -180,11 +182,25 @@ static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfig
                     break;
 
                 case "🚗 Check Out Vehicle":
-                    await CheckoutVehicleAsync(checkoutService, vehicleTypeStore);
+                    try
+                    {
+                        await CheckoutVehicleAsync(checkoutService, vehicleTypeStore, vehicleCatalog);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        AnsiConsole.MarkupLine("\n[yellow]Checkout cancelled.[/]");
+                    }
                     break;
 
                 case "🏁 Return Vehicle":
-                    await ReturnVehicleAsync(returnService, rentalRepository);
+                    try
+                    {
+                        await ReturnVehicleAsync(returnService, rentalRepository);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        AnsiConsole.MarkupLine("\n[yellow]Return cancelled.[/]");
+                    }
                     break;
 
                 case "📊 List All Rentals":
@@ -256,7 +272,7 @@ static async Task ListVehicleTypesAsync(IVehicleTypeStore store)
         });
 }
 
-static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStore store)
+static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStore store, IVehicleCatalog catalog)
 {
     AnsiConsole.WriteLine();
     AnsiConsole.Write(
@@ -267,57 +283,124 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
         });
     AnsiConsole.WriteLine();
 
-    // Show available types
+    // Step 1: Select vehicle type
     var vehicleTypes = await store.GetAllAsync();
     var typesList = vehicleTypes.ToList();
 
-    if (typesList.Any())
+    if (!typesList.Any())
     {
-        var typesTable = new Table()
-            .Border(TableBorder.Rounded)
-            .BorderColor(Color.Grey)
-            .AddColumn("[grey]Type ID[/]")
-            .AddColumn("[grey]Name[/]");
-
-        foreach (var vt in typesList)
-        {
-            typesTable.AddRow(vt.VehicleTypeId.EscapeMarkup(), vt.DisplayName.EscapeMarkup());
-        }
-
-        AnsiConsole.Write(typesTable);
-        AnsiConsole.WriteLine();
+        AnsiConsole.MarkupLine("[red]No vehicle types available.[/]");
+        return;
     }
 
-    var registrationNumber = AnsiConsole.Prompt(
-        new TextPrompt<string>("[cyan]Vehicle Registration Number[/] (e.g., license plate, callsign):")
-            .PromptStyle("white")
-            .ValidationErrorMessage("[red]Registration number is required[/]")
-            .Validate(input => !string.IsNullOrWhiteSpace(input)));
+    // Add a special marker for cancel option
+    var cancelType = new VehicleTypeDefinition
+    {
+        VehicleTypeId = "__CANCEL__",
+        DisplayName = "Cancel",
+        PricingFormula = "",
+        Description = null
+    };
+
+    var typesWithCancel = typesList.Concat(new[] { cancelType }).ToList();
+
+    var selectedType = AnsiConsole.Prompt(
+        new SelectionPrompt<VehicleTypeDefinition>()
+            .Title("[cyan]Select Vehicle Type:[/] [grey](ESC to cancel)[/]")
+            .PageSize(10)
+            .UseConverter(vt => vt.VehicleTypeId == "__CANCEL__" ? "[red]❌ Cancel[/]" : $"{vt.DisplayName} ({vt.VehicleTypeId})")
+            .AddChoices(typesWithCancel));
+
+    if (selectedType.VehicleTypeId == "__CANCEL__")
+    {
+        throw new OperationCanceledException();
+    }
+
+    AnsiConsole.WriteLine();
+
+    // Step 2: Get vehicles of selected type from catalog
+    var allVehicles = await catalog.GetAllAsync();
+    var availableVehicles = allVehicles
+        .Where(v => v.VehicleTypeId.Equals(selectedType.VehicleTypeId, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    if (!availableVehicles.Any())
+    {
+        AnsiConsole.MarkupLine($"[yellow]No vehicles available for type '{selectedType.DisplayName}'.[/]");
+        return;
+    }
+
+    // Add a special marker for cancel option
+    var cancelVehicle = new Vehicle
+    {
+        RegistrationNumber = "__CANCEL__",
+        VehicleTypeId = selectedType.VehicleTypeId,
+        CurrentOdometer = 0
+    };
+
+    var vehiclesWithCancel = availableVehicles.Concat(new[] { cancelVehicle }).ToList();
+
+    var selectedVehicle = AnsiConsole.Prompt(
+        new SelectionPrompt<Vehicle>()
+            .Title($"[cyan]Select {selectedType.DisplayName}:[/] [grey](ESC to cancel)[/]")
+            .PageSize(10)
+            .UseConverter(v => v.RegistrationNumber == "__CANCEL__" ? "[red]❌ Cancel[/]" : $"{v.RegistrationNumber} (Odometer: {v.CurrentOdometer:F0} km)")
+            .AddChoices(vehiclesWithCancel));
+
+    if (selectedVehicle.RegistrationNumber == "__CANCEL__")
+    {
+        throw new OperationCanceledException();
+    }
+
+    var registrationNumber = selectedVehicle.RegistrationNumber;
+    var vehicleTypeId = selectedType.VehicleTypeId;
 
     // Generate a unique, user-friendly booking number
     var bookingNumber = $"BK-{DateTimeOffset.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..8].ToUpperInvariant()}";
 
-    var vehicleTypeId = AnsiConsole.Prompt(
-        new TextPrompt<string>("[cyan]Vehicle Type ID[/] (optional, press Enter to skip):")
+    AnsiConsole.WriteLine();
+
+    // Step 3: Prompt for checkout timestamp
+    var checkoutTimestampInput = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Checkout Timestamp[/] (ISO 8601, e.g., 2024-03-20T10:00:00+01:00) [grey]or type 'esc' to cancel[/]:")
             .PromptStyle("white")
+            .DefaultValue(DateTimeOffset.Now.ToString("o"))
             .AllowEmpty());
 
-    var checkoutTimestamp = AnsiConsole.Prompt(
-        new TextPrompt<DateTimeOffset>("[cyan]Checkout Timestamp[/] (ISO 8601, e.g., 2024-03-20T10:00:00+01:00):")
-            .PromptStyle("white")
-            .ValidationErrorMessage("[red]Invalid timestamp format[/]"));
+    if (checkoutTimestampInput.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new OperationCanceledException();
+    }
 
-    var odometer = AnsiConsole.Prompt(
-        new TextPrompt<decimal>("[cyan]Odometer Reading[/] (km):")
+    if (!DateTimeOffset.TryParse(checkoutTimestampInput, out var checkoutTimestamp))
+    {
+        AnsiConsole.MarkupLine("[red]Invalid timestamp format.[/]");
+        return;
+    }
+
+    // Use vehicle's current odometer as default
+    var odometerInput = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Odometer Reading[/] (km) [grey]or type 'esc' to cancel[/]:")
             .PromptStyle("white")
-            .ValidationErrorMessage("[red]Invalid odometer reading[/]")
-            .Validate(value => value >= 0 ? ValidationResult.Success() : ValidationResult.Error("[red]Odometer cannot be negative[/]")));
+            .DefaultValue(selectedVehicle.CurrentOdometer.ToString())
+            .AllowEmpty());
+
+    if (odometerInput.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new OperationCanceledException();
+    }
+
+    if (!decimal.TryParse(odometerInput, out var odometer) || odometer < 0)
+    {
+        AnsiConsole.MarkupLine("[red]Invalid odometer reading.[/]");
+        return;
+    }
 
     var request = new RegisterCheckoutRequest
     {
         BookingNumber = bookingNumber,
         RegistrationNumber = registrationNumber,
-        VehicleTypeId = string.IsNullOrWhiteSpace(vehicleTypeId) ? null : vehicleTypeId,
+        VehicleTypeId = vehicleTypeId,
         CheckoutTimestamp = checkoutTimestamp,
         CheckoutOdometer = odometer
     };
@@ -374,31 +457,75 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
     AnsiConsole.WriteLine();
 
     var bookingNumber = AnsiConsole.Prompt(
-        new TextPrompt<string>("[cyan]Booking Number:[/]")
-            .PromptStyle("white")
-            .ValidationErrorMessage("[red]Booking number is required[/]")
-            .Validate(input => !string.IsNullOrWhiteSpace(input)));
+        new TextPrompt<string>("[cyan]Booking Number[/] [grey]or type 'esc' to cancel[/]:")
+            .PromptStyle("white"));
 
-    var returnTimestamp = AnsiConsole.Prompt(
-        new TextPrompt<DateTimeOffset>("[cyan]Return Timestamp[/] (ISO 8601, e.g., 2024-03-22T14:30:00+01:00):")
-            .PromptStyle("white")
-            .ValidationErrorMessage("[red]Invalid timestamp format[/]"));
+    if (bookingNumber.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new OperationCanceledException();
+    }
 
-    var odometer = AnsiConsole.Prompt(
-        new TextPrompt<decimal>("[cyan]Odometer Reading[/] (km):")
+    var returnTimestampInput = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Return Timestamp[/] (ISO 8601, e.g., 2024-03-22T14:30:00+01:00) [grey]or type 'esc' to cancel[/]:")
             .PromptStyle("white")
-            .ValidationErrorMessage("[red]Invalid odometer reading[/]")
-            .Validate(value => value >= 0 ? ValidationResult.Success() : ValidationResult.Error("[red]Odometer cannot be negative[/]")));
+            .DefaultValue(DateTimeOffset.Now.ToString("o"))
+            .AllowEmpty());
 
-    var baseDayRate = AnsiConsole.Prompt(
-        new TextPrompt<decimal>("[cyan]Base Day Rate[/] (SEK):")
-            .PromptStyle("white")
-            .ValidationErrorMessage("[red]Invalid base day rate[/]"));
+    if (returnTimestampInput.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new OperationCanceledException();
+    }
 
-    var baseKmPrice = AnsiConsole.Prompt(
-        new TextPrompt<decimal>("[cyan]Base Kilometer Price[/] (SEK):")
-            .PromptStyle("white")
-            .ValidationErrorMessage("[red]Invalid base kilometer price[/]"));
+    if (!DateTimeOffset.TryParse(returnTimestampInput, out var returnTimestamp))
+    {
+        AnsiConsole.MarkupLine("[red]Invalid timestamp format.[/]");
+        return;
+    }
+
+    var odometerInput = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Odometer Reading[/] (km) [grey]or type 'esc' to cancel[/]:")
+            .PromptStyle("white"));
+
+    if (odometerInput.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new OperationCanceledException();
+    }
+
+    if (!decimal.TryParse(odometerInput, out var odometer) || odometer < 0)
+    {
+        AnsiConsole.MarkupLine("[red]Invalid odometer reading.[/]");
+        return;
+    }
+
+    var baseDayRateInput = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Base Day Rate[/] (SEK) [grey]or type 'esc' to cancel[/]:")
+            .PromptStyle("white"));
+
+    if (baseDayRateInput.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new OperationCanceledException();
+    }
+
+    if (!decimal.TryParse(baseDayRateInput, out var baseDayRate))
+    {
+        AnsiConsole.MarkupLine("[red]Invalid base day rate.[/]");
+        return;
+    }
+
+    var baseKmPriceInput = AnsiConsole.Prompt(
+        new TextPrompt<string>("[cyan]Base Kilometer Price[/] (SEK) [grey]or type 'esc' to cancel[/]:")
+            .PromptStyle("white"));
+
+    if (baseKmPriceInput.Equals("esc", StringComparison.OrdinalIgnoreCase))
+    {
+        throw new OperationCanceledException();
+    }
+
+    if (!decimal.TryParse(baseKmPriceInput, out var baseKmPrice))
+    {
+        AnsiConsole.MarkupLine("[red]Invalid base kilometer price.[/]");
+        return;
+    }
 
     var request = new RegisterReturnRequest
     {

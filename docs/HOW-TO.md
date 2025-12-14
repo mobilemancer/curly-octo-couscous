@@ -41,8 +41,6 @@ The client cna also receive updated VehicleType information.
 Used to administer the VehicleRental system.
 Enables CRUD operations over VehicleTypes.
 
-
-
 dir -Recurse -Include *.cs,*.md | Get-Content | Measure-Object -Line
 
 truck

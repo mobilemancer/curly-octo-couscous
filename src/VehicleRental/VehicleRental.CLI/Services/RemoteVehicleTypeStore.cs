@@ -57,8 +57,8 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
             .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
 
-        // Subscribe to push notifications
-        _hubConnection.On<VehicleTypeUpdateNotification>("VehicleTypeUpdated", HandleVehicleTypeUpdate);
+        // Subscribe to push notifications - match server's method name
+        _hubConnection.On<VehicleTypeUpdateNotification>("VehicleTypesUpdated", HandleVehicleTypeUpdate);
 
         _hubConnection.Reconnecting += error =>
         {
@@ -298,12 +298,9 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         _logger.LogInformation("Received update notification: {Type} - {Count} types affected (new version: {Version})",
             notification.UpdateType, notification.AffectedTypeIds.Count, notification.NewVersion);
 
-        await _syncLock.WaitAsync();
         try
         {
-            // For any change, reload the affected types
-            // In a real implementation, we might optimize this by only fetching specific types
-            // For simplicity, just reload all data
+            // Reload all data - ReloadAllAsync has its own locking mechanism
             _logger.LogInformation("Reloading data due to update notification");
             await ReloadAllAsync();
 
@@ -312,10 +309,6 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling vehicle type update");
-        }
-        finally
-        {
-            _syncLock.Release();
         }
     }
 

@@ -14,4 +14,9 @@ public sealed record Vehicle
     /// Gets the vehicle type identifier that references a VehicleTypeDefinition.
     /// </summary>
     public required string VehicleTypeId { get; init; }
+
+    /// <summary>
+    /// Gets the current odometer reading in kilometers.
+    /// </summary>
+    public decimal CurrentOdometer { get; init; }
 }

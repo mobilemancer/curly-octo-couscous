@@ -94,16 +94,16 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 
 ### 2.5.2 Time zone tests
 
-- [ ] Test: same absolute instant expressed in different time zones produces same rental days
-- [ ] Test: parsing offset-less timestamp applies system timezone
-- [ ] Test: invalid offset values are rejected with clear error
-- [ ] Test: DST transitions (if applicable to system timezone)
-- [ ] Test: Leap year tests, combined with renting and turning in from different timezones
+- [x] Test: same absolute instant expressed in different time zones produces same rental days
+- [x] Test: parsing offset-less timestamp applies system timezone
+- [x] Test: invalid offset values are rejected with clear error
+- [x] Test: DST transitions (if applicable to system timezone)
+- [x] Test: Leap year tests, combined with renting and turning in from different timezones
 
 - Exit criteria:
 
 - [x] All timestamp inputs are normalized to `DateTimeOffset` before reaching Core
-- [ ] Core always operates on UTC instants for duration calculations
+- [x] Core always operates on UTC instants for duration calculations
 
 ---
 
@@ -181,7 +181,6 @@ This is an execution checklist derived from `docs/implementation-spec.md`. Items
 ### 5.1 Configuration
 
 - [x] Add `appsettings.json` with `baseDayRate`, `baseKmPrice`, and paths to `vehicles.json` + `vehicle-types.json`
-- [ ] Add defaults and allow overrides via environment variables
 
 ### 5.2 DI composition
 

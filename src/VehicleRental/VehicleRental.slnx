@@ -2,5 +2,8 @@
   <Project Path="VehicleRental.CLI/VehicleRental.CLI.csproj" />
   <Project Path="VehicleRental.Core.Tests/VehicleRental.Core.Tests.csproj" />
   <Project Path="VehicleRental.Core/VehicleRental.Core.csproj" />
+  <Project Path="VehicleRental.DevTools.CLI/VehicleRental.DevTools.CLI.csproj" Id="0be8b8ef-2182-4155-941b-5b5d6797f38e" />
   <Project Path="VehicleRental.Infrastructure/VehicleRental.Infrastructure.csproj" />
+  <Project Path="VehicleRental.Server/VehicleRental.Server.csproj" />
+  <Project Path="VehicleRental.Shared/VehicleRental.Shared.csproj" />
 </Solution>

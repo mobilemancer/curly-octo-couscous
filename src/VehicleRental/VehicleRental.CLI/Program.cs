@@ -44,16 +44,17 @@ builder.Services.AddSingleton<ReturnService>();
 
 // Repositories
 builder.Services.AddSingleton<IRentalRepository, InMemoryRentalRepository>();
+
+// Vehicle Catalog - local storage (seeded from vehicles.json)
+// Each client/location stores their own vehicle data locally
 builder.Services.AddSingleton<IVehicleCatalog>(sp =>
 {
     var logger = sp.GetRequiredService<ILogger<InMemoryVehicleCatalog>>();
-    // mock vehicle repository data
     var vehiclesFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "vehicles.json");
     return new InMemoryVehicleCatalog(vehiclesFilePath, logger);
 });
 
 // Vehicle Type Store - Remote or Local
-// Check if server is configured and available
 if (!string.IsNullOrWhiteSpace(serverConfig.BaseUrl))
 {
     // Use remote store that connects to server
@@ -82,6 +83,43 @@ else
 var host = builder.Build();
 
 // =================================================================
+// Wire up vehicle update notifications from server to local catalog
+// =================================================================
+var vehicleTypeStore = host.Services.GetService<IVehicleTypeStore>();
+var vehicleCatalog = host.Services.GetRequiredService<IVehicleCatalog>();
+
+if (vehicleTypeStore is RemoteVehicleTypeStore remoteStore)
+{
+    remoteStore.OnVehicleUpdated += notification =>
+    {
+        // Handle vehicle updates from server and add to local catalog
+        switch (notification.UpdateType)
+        {
+            case VehicleRental.Shared.Contracts.VehicleUpdateType.Added:
+                if (notification.Vehicle != null)
+                {
+                    var vehicle = new VehicleRental.Core.Domain.Vehicle
+                    {
+                        RegistrationNumber = notification.Vehicle.RegistrationNumber,
+                        VehicleTypeId = VehicleRental.Core.Helpers.VehicleTypeIdNormalizer.Normalize(notification.Vehicle.VehicleTypeId),
+                        CurrentOdometer = notification.Vehicle.CurrentOdometer,
+                        Location = notification.Vehicle.Location
+                    };
+                    _ = vehicleCatalog.AddVehicleAsync(vehicle);
+                }
+                break;
+
+            case VehicleRental.Shared.Contracts.VehicleUpdateType.Removed:
+                if (notification.RegistrationNumber != null)
+                {
+                    _ = vehicleCatalog.RemoveVehicleAsync(notification.RegistrationNumber);
+                }
+                break;
+        }
+    };
+}
+
+// =================================================================
 // Application Entry Point
 // =================================================================
 
@@ -97,11 +135,10 @@ catch (Exception ex)
 }
 finally
 {
-    // Cleanup - dispose RemoteVehicleTypeStore if used
-    var vehicleTypeStore = host.Services.GetService<IVehicleTypeStore>();
-    if (vehicleTypeStore is IAsyncDisposable asyncDisposable)
+    // Cleanup - dispose remote services if used
+    if (vehicleTypeStore is IAsyncDisposable asyncDisposableStore)
     {
-        await asyncDisposable.DisposeAsync();
+        await asyncDisposableStore.DisposeAsync();
     }
 }
 
@@ -342,7 +379,8 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
     {
         RegistrationNumber = "__CANCEL__",
         VehicleTypeId = selectedType.VehicleTypeId,
-        CurrentOdometer = 0
+        CurrentOdometer = 0,
+        Location = "cancel"
     };
 
     var vehiclesWithCancel = availableVehicles.Concat(new[] { cancelVehicle }).ToList();

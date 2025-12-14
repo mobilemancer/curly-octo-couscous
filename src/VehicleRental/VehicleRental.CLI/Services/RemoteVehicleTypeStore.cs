@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using VehicleRental.Core.Domain;
+using VehicleRental.Core.Helpers;
 using VehicleRental.Core.Ports;
 using VehicleRental.Shared.Contracts;
 
@@ -11,6 +12,7 @@ namespace VehicleRental.CLI.Services;
 /// <summary>
 /// Client-side vehicle type store that fetches data from the server
 /// and receives real-time updates via SignalR.
+/// Also handles vehicle update notifications for the local catalog.
 /// </summary>
 public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
 {
@@ -26,6 +28,12 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
     private long _currentVersion;
     private Task? _backgroundConnectionTask;
     private string? _accessToken; // Store token explicitly
+
+    /// <summary>
+    /// Event fired when a vehicle update is received from the server.
+    /// The local catalog should subscribe to this to add/remove vehicles.
+    /// </summary>
+    public event Action<VehicleUpdateNotification>? OnVehicleUpdated;
 
     public RemoteVehicleTypeStore(
         string serverBaseUrl,
@@ -59,6 +67,9 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
 
         // Subscribe to push notifications - match server's method name
         _hubConnection.On<VehicleTypeUpdateNotification>("VehicleTypesUpdated", HandleVehicleTypeUpdate);
+
+        // Subscribe to vehicle update notifications
+        _hubConnection.On<VehicleUpdateNotification>("VehicleUpdated", HandleVehicleUpdate);
 
         _hubConnection.Reconnecting += error =>
         {
@@ -309,6 +320,24 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error handling vehicle type update");
+        }
+    }
+
+    private void HandleVehicleUpdate(VehicleUpdateNotification notification)
+    {
+        _logger.LogInformation("Received vehicle update: {UpdateType} for {Registration} at {Location}",
+            notification.UpdateType,
+            notification.Vehicle?.RegistrationNumber ?? notification.RegistrationNumber,
+            notification.Location);
+
+        try
+        {
+            // Raise event for local catalog to handle
+            OnVehicleUpdated?.Invoke(notification);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error handling vehicle update notification");
         }
     }
 

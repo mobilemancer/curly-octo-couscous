@@ -31,7 +31,8 @@ public class ClientServerArchitectureTests
         {
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
-            CurrentOdometer = 10000
+            CurrentOdometer = 10000,
+            Location = "test-location"
         });
 
         _vehicleTypeStore.AddVehicleType(new VehicleTypeDefinition
@@ -124,7 +125,8 @@ public class ClientServerArchitectureTests
         {
             RegistrationNumber = "DEF456",
             VehicleTypeId = "small-car",
-            CurrentOdometer = 20000
+            CurrentOdometer = 20000,
+            Location = "test-location"
         });
 
         // Customer 2 rents another vehicle of the same type
@@ -231,7 +233,8 @@ public class ClientServerArchitectureTests
         {
             RegistrationNumber = "DEF456",
             VehicleTypeId = "truck",
-            CurrentOdometer = 50000
+            CurrentOdometer = 50000,
+            Location = "test-location"
         });
 
         // Act
@@ -322,21 +325,24 @@ public class ClientServerArchitectureTests
         {
             RegistrationNumber = "VEH001",
             VehicleTypeId = "small-car",
-            CurrentOdometer = 10000
+            CurrentOdometer = 10000,
+            Location = "test-location"
         });
 
         _vehicleCatalog.AddVehicle(new Vehicle
         {
             RegistrationNumber = "VEH002",
             VehicleTypeId = "small-car",
-            CurrentOdometer = 20000
+            CurrentOdometer = 20000,
+            Location = "test-location"
         });
 
         _vehicleCatalog.AddVehicle(new Vehicle
         {
             RegistrationNumber = "VEH003",
             VehicleTypeId = "small-car",
-            CurrentOdometer = 30000
+            CurrentOdometer = 30000,
+            Location = "test-location"
         });
 
         // Act - Multiple customers checking out simultaneously

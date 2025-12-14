@@ -31,6 +31,9 @@ public sealed class ConfigurationHub : Hub
         // Add to global group for broadcasting
         await Groups.AddToGroupAsync(connectionId, "AllClients");
 
+        // Add to location-specific group for vehicle updates
+        await Groups.AddToGroupAsync(connectionId, $"Location:{clientId}");
+
         await base.OnConnectedAsync();
     }
 

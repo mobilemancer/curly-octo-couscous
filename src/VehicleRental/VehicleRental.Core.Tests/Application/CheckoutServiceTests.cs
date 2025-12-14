@@ -28,7 +28,8 @@ public class CheckoutServiceTests
         _vehicleCatalog.AddVehicle(new Vehicle
         {
             RegistrationNumber = "ABC123",
-            VehicleTypeId = "small-car"
+            VehicleTypeId = "small-car",
+            Location = "test-location"
         });
 
         _vehicleTypeStore.AddVehicleType(new VehicleTypeDefinition

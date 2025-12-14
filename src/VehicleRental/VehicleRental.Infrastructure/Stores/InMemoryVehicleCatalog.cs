@@ -64,6 +64,56 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
         return Task.FromResult(false);
     }
 
+    public Task<bool> AddVehicleAsync(Vehicle vehicle)
+    {
+        if (vehicle == null)
+        {
+            throw new ArgumentNullException(nameof(vehicle));
+        }
+
+        if (string.IsNullOrWhiteSpace(vehicle.RegistrationNumber))
+        {
+            _logger.LogWarning("Cannot add vehicle with empty registration number");
+            return Task.FromResult(false);
+        }
+
+        var success = _vehicles.TryAdd(vehicle.RegistrationNumber, vehicle);
+
+        if (success)
+        {
+            _logger.LogInformation("Added vehicle {RegistrationNumber} ({VehicleTypeId}) at {Location}",
+                vehicle.RegistrationNumber, vehicle.VehicleTypeId, vehicle.Location);
+        }
+        else
+        {
+            _logger.LogWarning("Vehicle {RegistrationNumber} already exists in catalog",
+                vehicle.RegistrationNumber);
+        }
+
+        return Task.FromResult(success);
+    }
+
+    public Task<bool> RemoveVehicleAsync(string registrationNumber)
+    {
+        if (string.IsNullOrWhiteSpace(registrationNumber))
+        {
+            return Task.FromResult(false);
+        }
+
+        var success = _vehicles.TryRemove(registrationNumber, out _);
+
+        if (success)
+        {
+            _logger.LogInformation("Removed vehicle {RegistrationNumber} from catalog", registrationNumber);
+        }
+        else
+        {
+            _logger.LogWarning("Vehicle {RegistrationNumber} not found for removal", registrationNumber);
+        }
+
+        return Task.FromResult(success);
+    }
+
     private void LoadFromFile(string filePath)
     {
         try
@@ -111,7 +161,8 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
                     {
                         RegistrationNumber = dto.RegistrationNumber.Trim(),
                         VehicleTypeId = normalizedTypeId,
-                        CurrentOdometer = dto.CurrentOdometer
+                        CurrentOdometer = dto.CurrentOdometer,
+                        Location = dto.Location ?? string.Empty
                     };
 
                     if (!_vehicles.TryAdd(vehicle.RegistrationNumber, vehicle))
@@ -146,5 +197,6 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
         public string RegistrationNumber { get; set; } = string.Empty;
         public string VehicleTypeId { get; set; } = string.Empty;
         public decimal CurrentOdometer { get; set; }
+        public string? Location { get; set; }
     }
 }

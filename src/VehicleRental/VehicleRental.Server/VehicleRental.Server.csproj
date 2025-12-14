@@ -13,7 +13,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\VehicleRental.Core\VehicleRental.Core.csproj" />
+    <ProjectReference Include="..\VehicleRental.Infrastructure\VehicleRental.Infrastructure.csproj" />
     <ProjectReference Include="..\VehicleRental.Shared\VehicleRental.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Data\vehicles.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

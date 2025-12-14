@@ -51,31 +51,31 @@
         "registrationNumber": "DEF459",
         "vehicleTypeId": "station-wagon",
         "currentOdometer": 61000,
-        "location": "location-stockholm-001"
+        "location": "location-malmo-002"
     },
     {
         "registrationNumber": "DEF460",
         "vehicleTypeId": "station-wagon",
         "currentOdometer": 27500,
-        "location": "location-stockholm-001"
+        "location": "location-malmo-002"
     },
     {
         "registrationNumber": "GHI789",
         "vehicleTypeId": "truck",
         "currentOdometer": 78000,
-        "location": "location-stockholm-001"
+        "location": "location-goteborg-003"
     },
     {
         "registrationNumber": "GHI790",
         "vehicleTypeId": "truck",
         "currentOdometer": 95000,
-        "location": "location-stockholm-001"
+        "location": "location-goteborg-003"
     },
     {
         "registrationNumber": "GHI791",
         "vehicleTypeId": "truck",
         "currentOdometer": 67500,
-        "location": "location-stockholm-001"
+        "location": "location-goteborg-003"
     },
     {
         "registrationNumber": "GHI792",

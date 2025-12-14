@@ -19,4 +19,10 @@ public sealed record Vehicle
     /// Gets the current odometer reading in kilometers.
     /// </summary>
     public decimal CurrentOdometer { get; init; }
+
+    /// <summary>
+    /// Gets the location (client ID) where this vehicle is assigned.
+    /// Corresponds to the clientId used for authentication.
+    /// </summary>
+    public required string Location { get; init; }
 }

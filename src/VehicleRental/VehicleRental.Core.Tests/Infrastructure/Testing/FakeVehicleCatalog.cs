@@ -35,4 +35,19 @@ public class FakeVehicleCatalog : IVehicleCatalog
         }
         return Task.FromResult(false);
     }
+
+    public Task<bool> AddVehicleAsync(Vehicle vehicle)
+    {
+        if (_vehicles.ContainsKey(vehicle.RegistrationNumber))
+        {
+            return Task.FromResult(false);
+        }
+        _vehicles[vehicle.RegistrationNumber] = vehicle;
+        return Task.FromResult(true);
+    }
+
+    public Task<bool> RemoveVehicleAsync(string registrationNumber)
+    {
+        return Task.FromResult(_vehicles.Remove(registrationNumber));
+    }
 }

@@ -51,6 +51,10 @@ builder.Services.AddSingleton(jwtSettings);
 builder.Services.AddSingleton(sp => acceptedClients.AsEnumerable());
 builder.Services.AddSingleton<ClientAuthenticationService>();
 builder.Services.AddSingleton<ServerVehicleTypeStore>();
+builder.Services.AddSingleton<IVehicleTypeStore>(sp => sp.GetRequiredService<ServerVehicleTypeStore>());
+
+// NOTE: Server does NOT store vehicles - it only relays vehicle operations to clients via SignalR.
+// Each client/location stores their own vehicle data locally.
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

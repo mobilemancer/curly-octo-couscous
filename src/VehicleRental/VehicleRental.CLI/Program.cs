@@ -110,15 +110,8 @@ return 0;
 // Interactive CLI Methods
 // =================================================================
 
-static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfiguration serverConfig)
+static void DisplayHeader(ServerConfiguration serverConfig)
 {
-    var checkoutService = services.GetRequiredService<CheckoutService>();
-    var returnService = services.GetRequiredService<ReturnService>();
-    var vehicleTypeStore = services.GetRequiredService<IVehicleTypeStore>();
-    var rentalRepository = services.GetRequiredService<IRentalRepository>();
-
-    AnsiConsole.Clear();
-
     // Display banner
     AnsiConsole.Write(
         new FigletText("Vehicle Rental")
@@ -152,12 +145,23 @@ static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfig
 
     AnsiConsole.Write(statusTable.Centered());
     AnsiConsole.WriteLine();
+}
+
+static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfiguration serverConfig)
+{
+    var checkoutService = services.GetRequiredService<CheckoutService>();
+    var returnService = services.GetRequiredService<ReturnService>();
+    var vehicleTypeStore = services.GetRequiredService<IVehicleTypeStore>();
+    var rentalRepository = services.GetRequiredService<IRentalRepository>();
+
+    AnsiConsole.Clear();
+    DisplayHeader(serverConfig);
 
     while (true)
     {
+        AnsiConsole.MarkupLine("[cyan1]What would you like to do?[/]");
         var command = AnsiConsole.Prompt(
             new SelectionPrompt<string>()
-                .Title("[cyan1]What would you like to do?[/]")
                 .PageSize(10)
                 .AddChoices(new[] {
                     "📋 List Vehicle Types",
@@ -208,6 +212,7 @@ static async Task RunInteractiveCliAsync(IServiceProvider services, ServerConfig
         AnsiConsole.MarkupLine("[grey]Press any key to continue...[/]");
         Console.ReadKey(true);
         AnsiConsole.Clear();
+        DisplayHeader(serverConfig);
     }
 }
 

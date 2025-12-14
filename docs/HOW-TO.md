@@ -56,3 +56,8 @@ GHI791
 2025-12-14T17:00
 500
 30
+
+luxury-car
+Luxury Car
+(baseDayRate * days * 20) + (baseKmPrice * km * 5)
+Rent your Dream!

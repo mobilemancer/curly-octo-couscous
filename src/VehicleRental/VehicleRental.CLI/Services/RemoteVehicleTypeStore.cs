@@ -109,7 +109,6 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
     {
         try
         {
-            Console.WriteLine("🔄 Connecting to server...");
             _logger.LogInformation("Attempting to connect to server...");
 
             // Authenticate first to get JWT token
@@ -127,7 +126,6 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
             try
             {
                 await _hubConnection.StartAsync();
-                Console.WriteLine("✅ Connected to server with real-time updates");
                 _logger.LogInformation("SignalR connection established");
 
                 // Subscribe to updates
@@ -137,14 +135,12 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
             catch (Exception signalREx)
             {
                 // SignalR failed but HTTP API works - continue without real-time updates
-                Console.WriteLine("✅ Connected to server (real-time updates unavailable)");
                 _logger.LogWarning(signalREx, "SignalR connection failed, continuing with HTTP API only");
             }
         }
         catch (Exception ex)
         {
             _isConnected = false;
-            Console.WriteLine($"⚠️  Server unavailable. Will retry every 10 seconds...");
             _logger.LogWarning(ex, "Failed to connect to server. Will retry in background.");
 
             // Start background reconnection task
@@ -160,7 +156,6 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
 
             try
             {
-                Console.WriteLine("🔄 Attempting to reconnect to server...");
                 _logger.LogInformation("Background reconnection attempt...");
 
                 // Authenticate first
@@ -177,7 +172,6 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
                 }
 
                 _isConnected = true;
-                Console.WriteLine("✅ Reconnected to server successfully");
                 _logger.LogInformation("Successfully reconnected to server");
                 break;
             }

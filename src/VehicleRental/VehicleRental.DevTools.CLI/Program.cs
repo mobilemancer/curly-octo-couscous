@@ -84,12 +84,11 @@ while (true)
     Console.WriteLine("  3. update-type   - Update existing vehicle type");
     Console.WriteLine("  4. delete-type   - Delete vehicle type");
     Console.WriteLine();
-    Console.WriteLine("  Vehicles:");
-    Console.WriteLine("  5. list-vehicles - List all vehicles");
-    Console.WriteLine("  6. add-vehicle   - Add new vehicle to fleet");
-    Console.WriteLine("  7. delete-vehicle - Remove vehicle from fleet");
+    Console.WriteLine("  Vehicles (relay to client locations):");
+    Console.WriteLine("  5. add-vehicle    - Add new vehicle to a location");
+    Console.WriteLine("  6. delete-vehicle - Remove vehicle from a location");
     Console.WriteLine();
-    Console.WriteLine("  8. exit          - Exit tool");
+    Console.WriteLine("  7. exit          - Exit tool");
     Console.WriteLine("═══════════════════════════════════════════════════════════════");
     Console.Write("\nEnter command: ");
 
@@ -124,21 +123,16 @@ while (true)
                 break;
 
             case "5":
-            case "list-vehicles":
-                await ListVehiclesAsync(httpClient, logger);
-                break;
-
-            case "6":
             case "add-vehicle":
                 await AddVehicleAsync(httpClient, logger);
                 break;
 
-            case "7":
+            case "6":
             case "delete-vehicle":
                 await DeleteVehicleAsync(httpClient, logger);
                 break;
 
-            case "8":
+            case "7":
             case "exit":
                 Console.WriteLine("\n👋 Goodbye!");
                 return 0;
@@ -377,44 +371,6 @@ static async Task DeleteVehicleTypeAsync(HttpClient client, ILogger logger)
     }
 }
 
-static async Task ListVehiclesAsync(HttpClient client, ILogger logger)
-{
-    Console.WriteLine("\n🚗 All Vehicles in Fleet");
-    Console.WriteLine("─────────────────────────────────────────────────────────────");
-
-    var response = await client.GetAsync("/api/vehicles");
-
-    if (!response.IsSuccessStatusCode)
-    {
-        Console.WriteLine($"❌ Failed to fetch vehicles: {response.StatusCode}");
-        return;
-    }
-
-    var vehicles = await response.Content.ReadFromJsonAsync<List<VehicleDto>>();
-
-    if (vehicles == null || vehicles.Count == 0)
-    {
-        Console.WriteLine("\nNo vehicles found in fleet.");
-        return;
-    }
-
-    // Group by location
-    var groupedByLocation = vehicles.GroupBy(v => v.Location).OrderBy(g => g.Key);
-
-    foreach (var locationGroup in groupedByLocation)
-    {
-        Console.WriteLine($"\n📍 Location: {locationGroup.Key}");
-        Console.WriteLine("   ─────────────────────────────────────────────────────");
-
-        foreach (var vehicle in locationGroup.OrderBy(v => v.VehicleTypeId).ThenBy(v => v.RegistrationNumber))
-        {
-            Console.WriteLine($"   • {vehicle.RegistrationNumber,-10} | Type: {vehicle.VehicleTypeId,-15} | Odometer: {vehicle.CurrentOdometer,8:N0} km");
-        }
-    }
-
-    Console.WriteLine($"\n   Total vehicles: {vehicles.Count}");
-}
-
 static async Task AddVehicleAsync(HttpClient client, ILogger logger)
 {
     Console.WriteLine("\n➕ Add New Vehicle to Fleet");
@@ -515,7 +471,15 @@ static async Task DeleteVehicleAsync(HttpClient client, ILogger logger)
         return;
     }
 
-    Console.Write($"⚠️  Are you sure you want to delete vehicle '{regNumber}'? (yes/no): ");
+    Console.Write("Location (client ID, e.g., 'location-stockholm-001'): ");
+    var location = Console.ReadLine()?.Trim();
+    if (string.IsNullOrWhiteSpace(location))
+    {
+        Console.WriteLine("❌ Location is required.");
+        return;
+    }
+
+    Console.Write($"⚠️  Are you sure you want to delete vehicle '{regNumber}' from {location}? (yes/no): ");
     var confirm = Console.ReadLine()?.Trim().ToLowerInvariant();
     if (confirm != "yes")
     {
@@ -523,11 +487,11 @@ static async Task DeleteVehicleAsync(HttpClient client, ILogger logger)
         return;
     }
 
-    var response = await client.DeleteAsync($"/api/vehicles/{regNumber}");
+    var response = await client.DeleteAsync($"/api/vehicles/{regNumber}?location={Uri.EscapeDataString(location)}");
 
     if (response.IsSuccessStatusCode)
     {
-        Console.WriteLine($"\n✓ Vehicle '{regNumber}' deleted successfully!");
+        Console.WriteLine($"\n✓ Vehicle '{regNumber}' deletion relayed to {location}!");
     }
     else
     {

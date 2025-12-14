@@ -46,6 +46,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             CheckoutTimestamp = DateTimeOffset.UtcNow,
             CheckoutOdometer = 10000
@@ -69,6 +70,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             CheckoutTimestamp = DateTimeOffset.UtcNow,
             CheckoutOdometer = 10000
@@ -89,6 +91,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "",
             CheckoutTimestamp = DateTimeOffset.UtcNow,
             CheckoutOdometer = 10000
@@ -109,6 +112,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             CheckoutTimestamp = DateTimeOffset.UtcNow,
             CheckoutOdometer = -100
@@ -129,6 +133,7 @@ public class CheckoutServiceTests
         var existingRental = new Rental
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
             CheckoutTimestamp = DateTimeOffset.UtcNow.AddDays(-1),
@@ -139,6 +144,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             CheckoutTimestamp = DateTimeOffset.UtcNow,
             CheckoutOdometer = 15000
@@ -159,6 +165,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "UNKNOWN",
             CheckoutTimestamp = DateTimeOffset.UtcNow,
             CheckoutOdometer = 10000
@@ -179,6 +186,7 @@ public class CheckoutServiceTests
         var existingRental = new Rental
         {
             BookingNumber = "BK000",
+            CustomerId = "CUST002",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
             CheckoutTimestamp = DateTimeOffset.UtcNow.AddDays(-1),
@@ -189,6 +197,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             CheckoutTimestamp = DateTimeOffset.UtcNow,
             CheckoutOdometer = 15000
@@ -216,6 +225,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "truck",
             CheckoutTimestamp = DateTimeOffset.UtcNow,
@@ -237,6 +247,7 @@ public class CheckoutServiceTests
         var request = new RegisterCheckoutRequest
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "unknown-type",
             CheckoutTimestamp = DateTimeOffset.UtcNow,

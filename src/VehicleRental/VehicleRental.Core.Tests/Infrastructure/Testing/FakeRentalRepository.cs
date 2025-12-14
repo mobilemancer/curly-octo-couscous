@@ -37,4 +37,10 @@ public class FakeRentalRepository : IRentalRepository
         _rentals[rental.BookingNumber] = rental;
         return Task.CompletedTask;
     }
+
+    public Task<IEnumerable<Rental>> GetAllAsync()
+    {
+        IEnumerable<Rental> rentals = _rentals.Values.ToList();
+        return Task.FromResult(rentals);
+    }
 }

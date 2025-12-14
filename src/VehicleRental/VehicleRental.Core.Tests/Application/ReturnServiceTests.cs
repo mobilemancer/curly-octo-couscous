@@ -53,6 +53,7 @@ public class ReturnServiceTests
         var rental = new Rental
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
             CheckoutTimestamp = checkout,
@@ -92,6 +93,7 @@ public class ReturnServiceTests
         var rental = new Rental
         {
             BookingNumber = "BK002",
+            CustomerId = "CUST002",
             RegistrationNumber = "DEF456",
             VehicleTypeId = "station-wagon",
             CheckoutTimestamp = checkout,
@@ -135,6 +137,7 @@ public class ReturnServiceTests
         var rental = new Rental
         {
             BookingNumber = "BK003",
+            CustomerId = "CUST003",
             RegistrationNumber = "TEST001",
             VehicleTypeId = "test-fractional",
             CheckoutTimestamp = checkout,
@@ -231,6 +234,7 @@ public class ReturnServiceTests
         var rental = new Rental
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
             CheckoutTimestamp = checkout,
@@ -265,6 +269,7 @@ public class ReturnServiceTests
         var rental = new Rental
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
             CheckoutTimestamp = checkout,
@@ -296,6 +301,7 @@ public class ReturnServiceTests
         var rental = new Rental
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
             CheckoutTimestamp = checkout,
@@ -327,6 +333,7 @@ public class ReturnServiceTests
         var rental = new Rental
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
             CheckoutTimestamp = checkout,
@@ -361,6 +368,7 @@ public class ReturnServiceTests
         var rental = new Rental
         {
             BookingNumber = "BK001",
+            CustomerId = "CUST001",
             RegistrationNumber = "ABC123",
             VehicleTypeId = "small-car",
             CheckoutTimestamp = checkoutUtc,

@@ -1,297 +1,348 @@
 # Client-Server Architecture Diagram
 
+## System Overview
+
 ```mermaid
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        VehicleRental.Server                              │
-│                     (ASP.NET Core Web API)                               │
-│                                                                           │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                    REST API Controllers                             │ │
-│  │                                                                      │ │
-│  │  ┌──────────────────┐         ┌──────────────────────────────┐    │ │
-│  │  │ ClientsController │         │ VehicleTypesController       │    │ │
-│  │  │                   │         │                               │    │ │
-│  │  │ POST /authenticate│         │ GET    /api/vehicle-types    │    │ │
-│  │  │                   │         │ POST   /api/vehicle-types    │    │ │
-│  │  │ Returns: JWT      │         │ PUT    /api/vehicle-types/:id│    │ │
-│  │  └──────────────────┘         │ DELETE /api/vehicle-types/:id│    │ │
-│  │                                 └──────────────────────────────┘    │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                           │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                    SignalR Hub (Real-time Push)                     │ │
-│  │                                                                      │ │
-│  │  ┌────────────────────────────────────────────────────────────┐   │ │
-│  │  │              ConfigurationHub                               │   │ │
-│  │  │                                                              │   │ │
-│  │  │  Methods:                                                   │   │ │
-│  │  │  • SubscribeToUpdates(clientId)                            │   │ │
-│  │  │  • NotifyVehicleTypesUpdated(notification)                 │   │ │
-│  │  └────────────────────────────────────────────────────────────┘   │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                           │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                         Services Layer                              │ │
-│  │                                                                      │ │
-│  │  ┌───────────────────────┐      ┌─────────────────────────────┐   │ │
-│  │  │ ClientAuthentication  │      │ VehicleTypeManagement       │   │ │
-│  │  │ Service               │      │ Service                      │   │ │
-│  │  │                       │      │                              │   │ │
-│  │  │ • ValidateClient()    │      │ • Add/Update/Delete Types   │   │ │
-│  │  │ • IssueJWT()          │      │ • ValidateFormula()         │   │ │
-│  │  └───────────────────────┘      │ • NotifyClients()           │   │ │
-│  │                                  └─────────────────────────────┘   │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-│                                                                           │
-│  ┌────────────────────────────────────────────────────────────────────┐ │
-│  │                    Data Store (Authoritative)                       │ │
-│  │                                                                      │ │
-│  │  ┌────────────────────────────────────────────────────────────┐   │ │
-│  │  │  InMemoryVehicleTypeStore (Server)                         │   │ │
-│  │  │                                                              │   │ │
-│  │  │  • small-car:    baseDayRate * days                        │   │ │
-│  │  │  • station-wagon: (baseDayRate * days * 1.3) + ...        │   │ │
-│  │  │  • truck:        (baseDayRate * days * 1.5) + ...         │   │ │
-│  │  └────────────────────────────────────────────────────────────┘   │ │
-│  │                                                                      │ │
-│  │  ┌────────────────────────────────────────────────────────────┐   │ │
-│  │  │  Accepted Clients Registry                                  │   │ │
-│  │  │                                                              │   │ │
-│  │  │  • location-stockholm-001  → API Key 1                     │   │ │
-│  │  │  • location-malmo-002      → API Key 2                     │   │ │
-│  │  │  • location-goteborg-003   → API Key 3                     │   │ │
-│  │  └────────────────────────────────────────────────────────────┘   │ │
-│  └────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────┘
-                                    ▲
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │ HTTPS/WSS     │ HTTPS/WSS     │ HTTPS/WSS
-                    │               │               │
-                    ▼               ▼               ▼
-┌──────────────────────┐  ┌──────────────────────┐  ┌──────────────────────┐
-│   Client 1           │  │   Client 2           │  │   Client 3           │
-│   (Stockholm)        │  │   (Malmö)            │  │   (Göteborg)         │
-│                      │  │                      │  │                      │
-│  VehicleRental.CLI   │  │  VehicleRental.CLI   │  │  VehicleRental.CLI   │
-│                      │  │                      │  │                      │
-│ ┌──────────────────┐ │  │ ┌──────────────────┐ │  │ ┌──────────────────┐ │
-│ │ Remote           │ │  │ │ Remote           │ │  │ │ Remote           │ │
-│ │ VehicleTypeStore │ │  │ │ VehicleTypeStore │ │  │ │ VehicleTypeStore │ │
-│ │                  │ │  │ │                  │ │  │ │                  │ │
-│ │ • HTTP Client    │ │  │ │ • HTTP Client    │ │  │ │ • HTTP Client    │ │
-│ │ • SignalR Client │ │  │ │ • SignalR Client │ │  │ │ • SignalR Client │ │
-│ │ • Memory Cache   │ │  │ │ • Memory Cache   │ │  │ │ • Memory Cache   │ │
-│ │ • Disk Cache     │ │  │ │ • Disk Cache     │ │  │ │ • Disk Cache     │ │
-│ └──────────────────┘ │  │ └──────────────────┘ │  │ └──────────────────┘ │
-│                      │  │                      │  │                      │
-│ ┌──────────────────┐ │  │ ┌──────────────────┐ │  │ ┌──────────────────┐ │
-│ │ Local Fleet      │ │  │ │ Local Fleet      │ │  │ │ Local Fleet      │ │
-│ │ (vehicles.json)  │ │  │ │ (vehicles.json)  │ │  │ │ (vehicles.json)  │ │
-│ │                  │ │  │ │                  │ │  │ │                  │ │
-│ │ ABC123 small-car │ │  │ │ DEF456 truck     │ │  │ │ GHI789 wagon     │ │
-│ │ ABC124 small-car │ │  │ │ DEF457 truck     │ │  │ │ GHI790 wagon     │ │
-│ │ ABC125 truck     │ │  │ │ DEF458 small-car │ │  │ │ GHI791 small-car │ │
-│ └──────────────────┘ │  │ └──────────────────┘ │  │ └──────────────────┘ │
-│                      │  │                      │  │                      │
-│ ┌──────────────────┐ │  │ ┌──────────────────┐ │  │ ┌──────────────────┐ │
-│ │ Active Rentals   │ │  │ │ Active Rentals   │ │  │ │ Active Rentals   │ │
-│ │ (In-Memory)      │ │  │ │ (In-Memory)      │ │  │ │ (In-Memory)      │ │
-│ │                  │ │  │ │                  │ │  │ │                  │ │
-│ │ BK001: ABC123    │ │  │ │ BK501: DEF456    │ │  │ │ BK801: GHI789    │ │
-│ │   Type: small-car│ │  │ │   Type: truck    │ │  │ │   Type: wagon    │ │
-│ │   Price: FROZEN  │ │  │ │   Price: FROZEN  │ │  │ │   Price: FROZEN  │ │
-│ └──────────────────┘ │  │ └──────────────────┘ │  │ └──────────────────┘ │
-└──────────────────────┘  └──────────────────────┘  └──────────────────────┘
+graph TB
+    subgraph Server["VehicleRental.Server (ASP.NET Core Web API)"]
+        subgraph Controllers["REST API Controllers"]
+            CC[ClientsController<br/>POST /api/clients/authenticate]
+            VTC[VehicleTypesController<br/>GET/POST/DELETE /api/vehicle-types]
+            VC[VehiclesController<br/>POST/DELETE /api/vehicles]
+        end
+        
+        subgraph Hub["SignalR Hub"]
+            CH[ConfigurationHub<br/>/hubs/configuration]
+        end
+        
+        subgraph Services["Services Layer"]
+            CAS[ClientAuthenticationService<br/>• Authenticate<br/>• IssueJWT]
+            SVTS[ServerVehicleTypeStore<br/>• AddOrUpdate<br/>• Delete<br/>• NotifyClients]
+        end
+        
+        subgraph DataStore["Data Store (In-Memory)"]
+            VTD[(Vehicle Type Definitions<br/>• small-car<br/>• station-wagon<br/>• truck)]
+            ACR[(Accepted Clients Registry<br/>• location-xxx-001<br/>• admin-001)]
+        end
+        
+        CC --> CAS
+        VTC --> SVTS
+        VC --> CH
+        SVTS --> CH
+        CAS --> ACR
+        SVTS --> VTD
+    end
+    
+    subgraph Admin["VehicleRental.DevTools.CLI (Admin)"]
+        AdminHTTP[HTTP Client<br/>JWT Auth]
+    end
+    
+    subgraph Client1["VehicleRental.CLI (Location Client)"]
+        subgraph RemoteStore1["RemoteVehicleTypeStore"]
+            HTTP1[HTTP Client]
+            SR1[SignalR Client]
+            Cache1[Memory Cache]
+        end
+        
+        subgraph LocalData1["Local Data"]
+            Fleet1[(vehicles.json)]
+            Rentals1[(Active Rentals<br/>In-Memory)]
+        end
+        
+        subgraph CoreServices1["Core Services"]
+            Checkout1[CheckoutService]
+            Return1[ReturnService]
+            Pricing1[PricingCalculator]
+        end
+    end
+    
+    AdminHTTP -->|HTTPS| CC
+    AdminHTTP -->|HTTPS| VTC
+    AdminHTTP -->|HTTPS| VC
+    
+    HTTP1 -->|HTTPS| CC
+    HTTP1 -->|HTTPS| VTC
+    SR1 -->|WSS| CH
+    
+    CH -->|VehicleTypesUpdated| SR1
+    CH -->|VehicleUpdated| SR1
+```
 
+## Project Structure
 
-═══════════════════════════════════════════════════════════════════════════
-                            Communication Flows
-═══════════════════════════════════════════════════════════════════════════
+```mermaid
+graph LR
+    subgraph Projects
+        Server[VehicleRental.Server]
+        CLI[VehicleRental.CLI]
+        DevTools[VehicleRental.DevTools.CLI]
+        Core[VehicleRental.Core]
+        Infra[VehicleRental.Infrastructure]
+        Shared[VehicleRental.Shared]
+    end
+    
+    Server --> Core
+    Server --> Infra
+    Server --> Shared
+    
+    CLI --> Core
+    CLI --> Infra
+    CLI --> Shared
+    
+    DevTools --> Shared
+    
+    Infra --> Core
+```
 
-1. CLIENT STARTUP (Initial Sync)
-   ─────────────────────────────
-   Client                              Server
-     │                                   │
-     ├─► POST /api/clients/authenticate  │
-     │   { clientId, apiKey }            │
-     │                                   │
-     │   ◄─ 200 OK { jwt }              │
-     │                                   │
-     ├─► GET /api/vehicle-types          │
-     │   Authorization: Bearer {jwt}     │
-     │                                   │
-     │   ◄─ 200 OK { vehicleTypes[] }   │
-     │                                   │
-     ├─► Cache to disk & memory          │
-     │                                   │
-     ├─► Connect to SignalR Hub          │
-     │   Authorization: Bearer {jwt}     │
-     │                                   │
-     │   ◄─ Connection accepted          │
-     │                                   │
-     └─► Ready for operations            │
+## REST API Endpoints
 
+```mermaid
+graph LR
+    subgraph Authentication
+        A1["POST /api/clients/authenticate<br/>Body: {clientId, apiKey}<br/>Returns: {accessToken, clientName}"]
+    end
+    
+    subgraph VehicleTypes["Vehicle Types (Requires JWT)"]
+        B1["GET /api/vehicle-types<br/>Returns all types"]
+        B2["GET /api/vehicle-types/{id}<br/>Returns specific type"]
+        B3["POST /api/vehicle-types<br/>Create/Update (Admin only)"]
+        B4["DELETE /api/vehicle-types/{id}<br/>Delete (Admin only)"]
+        B5["GET /api/vehicle-types/version<br/>Returns current version"]
+    end
+    
+    subgraph Vehicles["Vehicles Relay (Admin only, Requires JWT)"]
+        C1["POST /api/vehicles<br/>Relay add to location"]
+        C2["DELETE /api/vehicles/{regNum}?location=xxx<br/>Relay remove from location"]
+    end
+```
 
-2. VEHICLE TYPE UPDATE (Server-Initiated Push)
-   ────────────────────────────────────────────
-   Admin                Server                      All Clients
-     │                    │                              │
-     ├─► PUT /vehicle-    │                              │
-     │   types/small-car  │                              │
-     │   { new formula }  │                              │
-     │                    │                              │
-     │   ◄─ 200 OK        │                              │
-     │                    │                              │
-     │                    ├─► Update storage             │
-     │                    │                              │
-     │                    ├─► SignalR: VehicleTypes─────►│
-     │                    │   Updated({ changes })       │
-     │                    │                              │
-     │                    │                    Client 1 ─┤ Reload types
-     │                    │                              │
-     │                    │                    Client 2 ─┤ Reload types
-     │                    │                              │
-     │                    │                    Client 3 ─┤ Reload types
+---
 
+## Communication Flows
 
-3. PRICE FREEZING (Active Rental Unaffected by Update)
-   ────────────────────────────────────────────────────
-   Client State Before Update:
-   ┌──────────────────────────────────────┐
-   │ Active Rental: BK001                 │
-   │   VehicleTypeId: "small-car"         │
-   │   Checkout: 2025-12-10               │
-   │   Type Definition at Checkout:       │
-   │     Formula: "baseDayRate * days"    │
-   │     baseDayRate: 100                 │
-   └──────────────────────────────────────┘
+### 1. Client Startup (Initial Sync)
 
-   Server Updates small-car:
-   ┌──────────────────────────────────────┐
-   │ New Formula: "baseDayRate * days * 2"│
-   │ baseDayRate: 100 (unchanged)         │
-   └──────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant CLI as VehicleRental.CLI
+    participant Server as VehicleRental.Server
+    
+    CLI->>Server: POST /api/clients/authenticate<br/>{clientId, apiKey}
+    Server-->>CLI: 200 OK {accessToken, clientName}
+    
+    CLI->>Server: GET /api/vehicle-types<br/>Authorization: Bearer {jwt}
+    Server-->>CLI: 200 OK [{vehicleTypes}]
+    
+    CLI->>CLI: Cache types to memory
+    
+    CLI->>Server: Connect to /hubs/configuration<br/>access_token={jwt}
+    Server-->>CLI: Connection established
+    
+    CLI->>Server: SubscribeToUpdates()
+    Server-->>CLI: Subscribed
+    
+    Note over CLI: Ready for checkout/return operations
+```
 
-   Client State After Update:
-   ┌──────────────────────────────────────┐
-   │ Active Rental: BK001                 │
-   │   VehicleTypeId: "small-car"         │
-   │   Return: 2025-12-13                 │
-   │   Days: 3                            │
-   │   Price Calculation:                 │
-   │     Uses: "baseDayRate * days"       │
-   │     Result: 100 * 3 = 300            │
-   │   ✓ OLD PRICING PRESERVED            │
-   └──────────────────────────────────────┘
+### 2. Vehicle Type Update (Admin Push to All Clients)
 
-   New Rental After Update:
-   ┌──────────────────────────────────────┐
-   │ New Rental: BK002                    │
-   │   VehicleTypeId: "small-car"         │
-   │   Checkout: 2025-12-14               │
-   │   Price Calculation:                 │
-   │     Uses: "baseDayRate * days * 2"   │
-   │     Result: 100 * 3 * 2 = 600        │
-   │   ✓ NEW PRICING APPLIED              │
-   └──────────────────────────────────────┘
+```mermaid
+sequenceDiagram
+    participant Admin as DevTools.CLI (Admin)
+    participant Server as VehicleRental.Server
+    participant Hub as ConfigurationHub
+    participant C1 as CLI (Location 1)
+    participant C2 as CLI (Location 2)
+    
+    Admin->>Server: POST /api/vehicle-types<br/>{vehicleTypeId: "small-car", formula: "..."}
+    Server->>Server: Validate formula
+    Server->>Server: Update ServerVehicleTypeStore
+    Server-->>Admin: 200 OK {updated type}
+    
+    Server->>Hub: NotifyVehicleTypesUpdated
+    Hub-->>C1: VehicleTypesUpdated({type, version})
+    Hub-->>C2: VehicleTypesUpdated({type, version})
+    
+    C1->>C1: Update local cache
+    C2->>C2: Update local cache
+```
 
+### 3. Vehicle Relay to Location
 
-4. OFFLINE OPERATION (Server Unavailable)
-   ────────────────────────────────────────
-   Client                              Server
-     │                                   │
-     ├─► POST /api/clients/authenticate  │
-     │                                   X (timeout)
-     │                                   
-     ├─► Load cached-vehicle-types.json
-     │   
-     ├─► Log: "Operating in offline mode"
-     │   
-     └─► Continue operations with cached types
-         (Can still checkout/return using local data)
+```mermaid
+sequenceDiagram
+    participant Admin as DevTools.CLI (Admin)
+    participant Server as VehicleRental.Server
+    participant Hub as ConfigurationHub
+    participant CLI as CLI (Target Location)
+    
+    Admin->>Server: POST /api/vehicles<br/>{regNum, typeId, location}
+    Server->>Server: Validate vehicle type exists
+    Server->>Hub: Notify Location:{location}
+    Hub-->>CLI: VehicleUpdated({type: Added, vehicle})
+    Server-->>Admin: 202 Accepted
+    
+    CLI->>CLI: Add vehicle to local catalog
+```
 
+### 4. Price Freezing at Checkout
 
-═══════════════════════════════════════════════════════════════════════════
-                            Data Ownership Model
-═══════════════════════════════════════════════════════════════════════════
+```mermaid
+sequenceDiagram
+    participant CLI as VehicleRental.CLI
+    participant CheckoutSvc as CheckoutService
+    participant VTStore as VehicleTypeStore
+    participant RentalRepo as RentalRepository
+    
+    CLI->>CheckoutSvc: RegisterCheckoutAsync(request)
+    CheckoutSvc->>VTStore: GetByIdAsync(vehicleTypeId)
+    VTStore-->>CheckoutSvc: VehicleTypeDefinition (with formula)
+    
+    CheckoutSvc->>CheckoutSvc: Create Rental with frozen VehicleTypeDefinition
+    CheckoutSvc->>RentalRepo: SaveAsync(rental)
+    
+    Note over RentalRepo: Rental stores snapshot of<br/>VehicleTypeDefinition at checkout time
+    
+    CheckoutSvc-->>CLI: Success {bookingNumber, frozenType}
+```
 
-Server Owns:
-  ✓ Vehicle Type Definitions (small-car, truck, etc.)
-  ✓ Pricing Formulas
-  ✓ Client Registry & API Keys
-  ✓ Configuration Authority
+### 5. Return with Frozen Pricing
 
-Client Owns:
-  ✓ Local Vehicle Fleet (vehicles.json)
-  ✓ Active Rentals (in-memory)
-  ✓ Pricing Parameters (baseDayRate, baseKmPrice)
-  ✓ Operational State
+```mermaid
+sequenceDiagram
+    participant CLI as VehicleRental.CLI
+    participant ReturnSvc as ReturnService
+    participant RentalRepo as RentalRepository
+    participant PricingCalc as PricingCalculator
+    
+    CLI->>ReturnSvc: RegisterReturnAsync(request)
+    ReturnSvc->>RentalRepo: GetByBookingNumberAsync(bookingNumber)
+    RentalRepo-->>ReturnSvc: Rental (with frozen VehicleTypeDefinition)
+    
+    ReturnSvc->>PricingCalc: CalculatePrice(rental, pricingParams)
+    
+    Note over PricingCalc: Uses frozen formula from<br/>checkout time, NOT current server formula
+    
+    PricingCalc-->>ReturnSvc: calculatedPrice
+    ReturnSvc->>RentalRepo: Update rental as completed
+    ReturnSvc-->>CLI: Success {price, days, km}
+```
 
-Cached on Client:
-  ⟳ Vehicle Type Definitions (synced from server)
-  ⟳ Last-known-good configuration (for offline mode)
+### 6. Offline Operation
 
+```mermaid
+sequenceDiagram
+    participant CLI as VehicleRental.CLI
+    participant Remote as RemoteVehicleTypeStore
+    participant Server as VehicleRental.Server
+    
+    CLI->>Remote: Initialize
+    Remote->>Server: POST /api/clients/authenticate
+    Server--xRemote: Timeout/Error
+    
+    Remote->>Remote: Load cached vehicle types
+    Remote->>Remote: Start background reconnection task
+    
+    Note over CLI: Operating in offline mode<br/>with cached vehicle types
+    
+    loop Every 10 seconds
+        Remote->>Server: Retry authentication
+        alt Server Available
+            Server-->>Remote: 200 OK {jwt}
+            Remote->>Server: GET /api/vehicle-types
+            Server-->>Remote: 200 OK [{types}]
+            Remote->>Remote: Update cache
+        else Server Unavailable
+            Remote->>Remote: Continue with cached data
+        end
+    end
+```
 
-═══════════════════════════════════════════════════════════════════════════
-                            Security Model
-═══════════════════════════════════════════════════════════════════════════
+---
 
-┌────────────────────────────────────────────────────────────────────────┐
-│                         Authentication Flow                             │
-└────────────────────────────────────────────────────────────────────────┘
+## Data Ownership Model
 
-1. Static API Keys (Phase 1)
-   ─────────────────────────
-   • Each client has unique clientId + apiKey pair
-   • API keys stored in server appsettings.json
-   • Client sends credentials on authentication
-   • Server issues short-lived JWT token
-   • Client uses JWT for all subsequent requests
+```mermaid
+graph TB
+    subgraph ServerOwns["Server Owns (Authoritative)"]
+        VT[Vehicle Type Definitions<br/>• small-car<br/>• station-wagon<br/>• truck]
+        PF[Pricing Formulas]
+        CR[Client Registry & API Keys]
+    end
+    
+    subgraph ClientOwns["Client Owns (Local)"]
+        LF[Local Vehicle Fleet<br/>vehicles.json]
+        AR[Active Rentals<br/>In-Memory with frozen pricing]
+        PP[Pricing Parameters<br/>baseDayRate, baseKmPrice]
+    end
+    
+    subgraph ClientCaches["Client Caches (Synced)"]
+        CVT[Vehicle Type Definitions<br/>cached from server]
+    end
+    
+    ServerOwns -->|Push via SignalR| ClientCaches
+    ClientCaches -->|Used for new checkouts| ClientOwns
+```
 
-2. Authorization Levels
-   ────────────────────
-   ┌──────────────────┬────────────────┬─────────────────┐
-   │ Role             │ Can Read Types │ Can Write Types │
-   ├──────────────────┼────────────────┼─────────────────┤
-   │ Regular Client   │      ✓         │       ✗         │
-   │ Admin Client     │      ✓         │       ✓         │
-   └──────────────────┴────────────────┴─────────────────┘
+---
 
-3. Transport Security
-   ──────────────────
-   • HTTPS required for all REST API calls
-   • WSS (secure WebSockets) for SignalR
-   • TLS 1.2+ minimum
-   • Certificate validation enforced
+## Security Model
 
+### Authentication Flow
 
-═══════════════════════════════════════════════════════════════════════════
-                         Implementation Priority
-═══════════════════════════════════════════════════════════════════════════
+```mermaid
+sequenceDiagram
+    participant Client as CLI/DevTools
+    participant Server as VehicleRental.Server
+    participant Auth as ClientAuthenticationService
+    participant JWT as JWT Token
+    
+    Client->>Server: POST /api/clients/authenticate<br/>{clientId, apiKey}
+    Server->>Auth: Validate credentials
+    
+    alt Valid Credentials
+        Auth->>Auth: Lookup client in AcceptedClients
+        Auth->>JWT: Generate JWT with claims<br/>(client_id, role, exp)
+        Auth-->>Server: AuthResponse with token
+        Server-->>Client: 200 OK {accessToken, clientName}
+        
+        Note over Client: Use token for all subsequent requests
+        Client->>Server: GET /api/vehicle-types<br/>Authorization: Bearer {token}
+    else Invalid Credentials
+        Auth-->>Server: Authentication failed
+        Server-->>Client: 401 Unauthorized
+    end
+```
 
-Phase 1: Basic Server + REST API (1-2 weeks)
-  1. Create Server project
-  2. Implement authentication
-  3. Implement vehicle types CRUD API
-  4. Add Swagger documentation
+### Authorization Levels
 
-Phase 2: Client Connection (1 week)
-  1. Create RemoteVehicleTypeStore
-  2. Add HTTP client with auth
-  3. Implement caching (memory + disk)
-  4. Add fallback to cached data
+```mermaid
+graph LR
+    subgraph Roles
+        Regular[Regular Client<br/>role: Client]
+        Admin[Admin Client<br/>role: Admin]
+    end
+    
+    subgraph Permissions
+        ReadTypes[Read Vehicle Types ✓]
+        WriteTypes[Write Vehicle Types]
+        RelayVehicles[Relay Vehicles to Locations]
+    end
+    
+    Regular --> ReadTypes
+    Admin --> ReadTypes
+    Admin --> WriteTypes
+    Admin --> RelayVehicles
+```
 
-Phase 3: Real-time Updates (1 week)
-  1. Add SignalR to server
-  2. Add SignalR client to CLI
-  3. Implement push notifications
-  4. Test concurrent clients
+### Transport Security
 
-Phase 4: Production Readiness (1 week)
-  1. Add comprehensive error handling
-  2. Add logging and monitoring
-  3. Performance testing
-  4. Security hardening
-  5. Documentation
+```mermaid
+graph TB
+    subgraph Security["Transport Security"]
+        HTTPS[HTTPS for REST API]
+        WSS[WSS for SignalR]
+        TLS[TLS 1.2+ minimum]
+        JWT[JWT Bearer Authentication]
+    end
 ```

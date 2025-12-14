@@ -57,6 +57,8 @@ There are no real third party Auth, or Data storage - they are all mocked in thi
 
 ## System Design Structure
 
+The VehicleRental.CLI is a client. It will need access to 
+
 
 dir -Recurse -Include *.cs,*.md | Get-Content | Measure-Object -Line
 

@@ -392,4 +392,348 @@ public class ReturnServiceTests
         Assert.Equal(3, result.Value!.Days);
         Assert.Equal(300, result.Value.RentalPrice);
     }
+
+    [Fact]
+    public async Task RegisterReturnAsync_SameSecondReturn_ReturnsFailure()
+    {
+        // Arrange - UI enforces minimum 1 minute between checkout and return
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout, // Same exact moment
+            ReturnOdometer = 10000,
+            PricingParameters = new PricingParameters { BaseDayRate = 100, BaseKmPrice = 0.5m }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Should fail validation (UI should prevent this, but backend validates too)
+        Assert.False(result.IsSuccess);
+        Assert.Contains("at least 1 minute", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_SubOneHourRental_CountsAsOneDay()
+    {
+        // Arrange - 2 hour rental should count as 1 day
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout.AddHours(2), // 2 hours later
+            ReturnOdometer = 10050,
+            PricingParameters = new PricingParameters { BaseDayRate = 100, BaseKmPrice = 0.5m }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Any rental < 24 hours should count as 1 day
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value!.Days);
+        Assert.Equal(100, result.Value.RentalPrice); // 100 * 1 day
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_ExactlyOneDayRental_CountsAsOneDay()
+    {
+        // Arrange - Exactly 24 hours should count as 1 day
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout.AddHours(24), // Exactly 24 hours
+            ReturnOdometer = 10100,
+            PricingParameters = new PricingParameters { BaseDayRate = 100, BaseKmPrice = 0.5m }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - 24 hours exactly should count as 1 day
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value!.Days);
+        Assert.Equal(100, result.Value.RentalPrice);
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_JustOverOneDayRental_CountsAsTwoDays()
+    {
+        // Arrange - 24 hours and 1 second should count as 2 days (rounds up)
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout.AddHours(24).AddSeconds(1), // 24h 1s
+            ReturnOdometer = 10100,
+            PricingParameters = new PricingParameters { BaseDayRate = 100, BaseKmPrice = 0.5m }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Should round up to 2 days
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Value!.Days);
+        Assert.Equal(200, result.Value.RentalPrice);
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_ExtremelyLongRental_ReturnsFailure()
+    {
+        // Arrange - 1000 day rental exceeds maximum of 60 days
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout.AddDays(1000), // Way too long
+            ReturnOdometer = 50000,
+            PricingParameters = new PricingParameters { BaseDayRate = 100, BaseKmPrice = 0.5m }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Should fail validation (max 60 days)
+        Assert.False(result.IsSuccess);
+        Assert.Contains("60 days", result.Error);
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_MaximumAllowedRental_ReturnsSuccess()
+    {
+        // Arrange - 60 day rental should be allowed
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout.AddDays(60), // Maximum allowed
+            ReturnOdometer = 15000,
+            PricingParameters = new PricingParameters { BaseDayRate = 100, BaseKmPrice = 0.5m }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Should succeed
+        Assert.True(result.IsSuccess);
+        Assert.Equal(60, result.Value!.Days);
+        Assert.Equal(6000, result.Value.RentalPrice);
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_ZeroBaseRates_CalculatesCorrectly()
+    {
+        // Arrange - Zero base rates should result in zero price
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout.AddDays(3),
+            ReturnOdometer = 10500,
+            PricingParameters = new PricingParameters
+            {
+                BaseDayRate = 0,
+                BaseKmPrice = 0
+            }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Zero rates should result in zero price
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0, result.Value!.RentalPrice);
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_NegativeBaseDayRate_ReturnsFailure()
+    {
+        // Arrange - Negative rates should not be allowed
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout.AddDays(3),
+            ReturnOdometer = 10500,
+            PricingParameters = new PricingParameters
+            {
+                BaseDayRate = -100,
+                BaseKmPrice = 0.5m
+            }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Should fail validation
+        Assert.False(result.IsSuccess);
+        Assert.Contains("negative", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_NegativeBaseKmPrice_ReturnsFailure()
+    {
+        // Arrange - Negative rates should not be allowed
+        var checkout = DateTimeOffset.Parse("2025-12-10T10:00:00Z");
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkout,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = checkout.AddDays(3),
+            ReturnOdometer = 10500,
+            PricingParameters = new PricingParameters
+            {
+                BaseDayRate = 100,
+                BaseKmPrice = -0.5m
+            }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Should fail validation
+        Assert.False(result.IsSuccess);
+        Assert.Contains("negative", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task RegisterReturnAsync_DSTBoundary_CalculatesCorrectly()
+    {
+        // Arrange - Test DST transition (Spring forward: 2 AM becomes 3 AM)
+        // In US, DST typically occurs on second Sunday of March
+        // Checkout at 1:00 AM EST (UTC-5), return at 4:00 AM EDT (UTC-4) on DST day
+        var checkoutBeforeDst = new DateTimeOffset(2025, 3, 9, 1, 0, 0, TimeSpan.FromHours(-5));
+        var returnAfterDst = new DateTimeOffset(2025, 3, 9, 4, 0, 0, TimeSpan.FromHours(-4));
+
+        // The clock jumped from 2 AM to 3 AM, so wall clock shows 3 hours
+        // But in UTC terms: 1 AM EST = 6 AM UTC, 4 AM EDT = 8 AM UTC = 2 hours actual time
+
+        var rental = new Rental
+        {
+            BookingNumber = "BK001",
+            CustomerId = "CUST001",
+            RegistrationNumber = "ABC123",
+            VehicleTypeId = "small-car",
+            CheckoutTimestamp = checkoutBeforeDst,
+            CheckoutOdometer = 10000
+        };
+        await _rentalRepository.AddAsync(rental);
+
+        var request = new RegisterReturnRequest
+        {
+            BookingNumber = "BK001",
+            ReturnTimestamp = returnAfterDst,
+            ReturnOdometer = 10050,
+            PricingParameters = new PricingParameters { BaseDayRate = 100, BaseKmPrice = 0.5m }
+        };
+
+        // Act
+        var result = await _service.RegisterReturnAsync(request);
+
+        // Assert - Calculation uses UTC, so should be based on actual elapsed time (2 hours = 1 day)
+        Assert.True(result.IsSuccess);
+        Assert.Equal(1, result.Value!.Days);
+        Assert.Equal(100, result.Value.RentalPrice);
+    }
 }

@@ -37,6 +37,17 @@ public class ReturnService
             return Result<RegisterReturnResponse>.Failure("Return odometer cannot be negative.");
         }
 
+        // Validate pricing parameters
+        if (request.PricingParameters.BaseDayRate < 0)
+        {
+            return Result<RegisterReturnResponse>.Failure("Base day rate cannot be negative.");
+        }
+
+        if (request.PricingParameters.BaseKmPrice < 0)
+        {
+            return Result<RegisterReturnResponse>.Failure("Base kilometer price cannot be negative.");
+        }
+
         // Load rental
         var rental = await _rentalRepository.GetByBookingNumberAsync(request.BookingNumber);
         if (rental is null)
@@ -58,6 +69,23 @@ public class ReturnService
             _logger.LogWarning("Return failed: return timestamp before checkout for booking {BookingNumber}",
                 request.BookingNumber);
             return Result<RegisterReturnResponse>.Failure("Return timestamp cannot be before checkout timestamp.");
+        }
+
+        // Validate minimum rental duration (at least 1 minute)
+        var duration = request.ReturnTimestamp.UtcDateTime - rental.CheckoutTimestamp.UtcDateTime;
+        if (duration.TotalMinutes < 1)
+        {
+            _logger.LogWarning("Return failed: rental duration less than 1 minute for booking {BookingNumber}",
+                request.BookingNumber);
+            return Result<RegisterReturnResponse>.Failure("Rental must be at least 1 minute.");
+        }
+
+        // Validate maximum rental duration (60 days)
+        if (duration.TotalDays > 60)
+        {
+            _logger.LogWarning("Return failed: rental duration exceeds 60 days for booking {BookingNumber}",
+                request.BookingNumber);
+            return Result<RegisterReturnResponse>.Failure("Rental duration cannot exceed 60 days.");
         }
 
         // Validate return odometer is not less than checkout

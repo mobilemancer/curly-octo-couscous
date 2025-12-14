@@ -85,4 +85,10 @@ public class InMemoryRentalRepository : IRentalRepository
 
         return Task.CompletedTask;
     }
+
+    public Task<IEnumerable<Rental>> GetAllAsync()
+    {
+        var rentals = _rentals.Values.OrderByDescending(r => r.CheckoutTimestamp);
+        return Task.FromResult<IEnumerable<Rental>>(rentals);
+    }
 }

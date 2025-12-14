@@ -1,0 +1,110 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-server",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/VehicleRental/VehicleRental.Server/VehicleRental.Server.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary;ForceNoAlign"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "build-cli",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/VehicleRental/VehicleRental.CLI/VehicleRental.CLI.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary;ForceNoAlign"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "build-devtools",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/src/VehicleRental/VehicleRental.DevTools.CLI/VehicleRental.DevTools.CLI.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary;ForceNoAlign"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "build-all",
+            "dependsOn": [
+                "build-server",
+                "build-cli",
+                "build-devtools"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "clean",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "clean",
+                "${workspaceFolder}/src/VehicleRental"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "test",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "test",
+                "${workspaceFolder}/src/VehicleRental"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "wait-for-server",
+            "type": "shell",
+            "command": "powershell",
+            "args": [
+                "-Command",
+                "Write-Host 'Waiting for server to be ready...'; $maxAttempts = 30; $attempt = 0; while ($attempt -lt $maxAttempts) { try { $response = Invoke-WebRequest -Uri 'http://localhost:5093/api/clients/authenticate' -Method POST -Body '{\"clientId\":\"test\",\"apiKey\":\"test\"}' -ContentType 'application/json' -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop; Write-Host 'Server is ready!'; exit 0; } catch { $attempt++; Start-Sleep -Milliseconds 500; } } Write-Host 'Server did not start in time'; exit 1;"
+            ],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "build-and-wait-cli",
+            "dependsOn": [
+                "build-cli",
+                "wait-for-server"
+            ],
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "build-and-wait-devtools",
+            "dependsOn": [
+                "build-devtools",
+                "wait-for-server"
+            ],
+            "dependsOrder": "sequence"
+        }
+    ]
+}

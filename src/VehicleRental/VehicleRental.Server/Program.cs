@@ -74,6 +74,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = context =>
             {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+
                 var accessToken = context.Request.Query["access_token"];
 
                 // If the request is for SignalR hub
@@ -82,8 +84,35 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     path.StartsWithSegments("/hubs/configuration"))
                 {
                     context.Token = accessToken;
+                    logger.LogDebug("Token extracted from query string for SignalR");
+                }
+                else
+                {
+                    // Check Authorization header
+                    var authHeader = context.Request.Headers.Authorization.ToString();
+                    logger.LogWarning("🔑 OnMessageReceived for {Path}: Auth header = '{Header}'",
+                        path, string.IsNullOrEmpty(authHeader) ? "EMPTY" : authHeader);
                 }
 
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogInformation("JWT Token validated successfully for {User}", context.Principal?.Identity?.Name ?? "Unknown");
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogError(context.Exception, "JWT Authentication failed: {Message}", context.Exception.Message);
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning("JWT Challenge triggered. Error: {Error}, ErrorDescription: {ErrorDescription}",
+                    context.Error, context.ErrorDescription);
                 return Task.CompletedTask;
             }
         };
@@ -112,6 +141,7 @@ var app = builder.Build();
 // Middleware Pipeline
 // =================================================================
 
+// HTTPS only for secure communication
 app.UseHttpsRedirection();
 app.UseCors();
 

@@ -1,79 +1,74 @@
 {
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Launch Server",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build-server",
-      "program": "${workspaceFolder}/src/VehicleRental/VehicleRental.Server/bin/Debug/net10.0/VehicleRental.Server.dll",
-      "args": [],
-      "cwd": "${workspaceFolder}/src/VehicleRental/VehicleRental.Server",
-      "stopAtEntry": false,
-      "serverReadyAction": {
-        "action": "openExternally",
-        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
-      },
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "sourceFileMap": {
-        "/Views": "${workspaceFolder}/Views"
-      }
-    },
-    {
-      "name": "Launch Client CLI",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build-cli",
-      "program": "${workspaceFolder}/src/VehicleRental/VehicleRental.CLI/bin/Debug/net10.0/VehicleRental.CLI.dll",
-      "args": [],
-      "cwd": "${workspaceFolder}/src/VehicleRental/VehicleRental.CLI",
-      "console": "integratedTerminal",
-      "stopAtEntry": false
-    },
-    {
-      "name": "Launch DevTools CLI",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build-devtools",
-      "program": "${workspaceFolder}/src/VehicleRental/VehicleRental.DevTools.CLI/bin/Debug/net10.0/VehicleRental.DevTools.CLI.dll",
-      "args": [],
-      "cwd": "${workspaceFolder}/src/VehicleRental/VehicleRental.DevTools.CLI",
-      "console": "integratedTerminal",
-      "stopAtEntry": false
-    }
-  ],
-  "compounds": [
-    {
-      "name": "Launch All (Server + CLIs)",
-      "configurations": [
-        "Launch Server",
-        "Launch Client CLI",
-        "Launch DevTools CLI"
-      ],
-      "stopAll": true,
-      "presentation": {
-        "hidden": false,
-        "group": "all",
-        "order": 1
-      }
-    },
-    {
-      "name": "Launch Server + Client",
-      "configurations": [
-        "Launch Server",
-        "Launch Client CLI"
-      ],
-      "stopAll": true
-    },
-    {
-      "name": "Launch Server + DevTools",
-      "configurations": [
-        "Launch Server",
-        "Launch DevTools CLI"
-      ],
-      "stopAll": true
-    }
-  ]
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Server",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-server",
+            "program": "${workspaceFolder}/src/VehicleRental/VehicleRental.Server/bin/Debug/net10.0/VehicleRental.Server.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/VehicleRental/VehicleRental.Server",
+            "console": "integratedTerminal",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "https://localhost:7016"
+            }
+        },
+        {
+            "name": "Launch Client CLI",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-cli",
+            "program": "${workspaceFolder}/src/VehicleRental/VehicleRental.CLI/bin/Debug/net10.0/VehicleRental.CLI.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/VehicleRental/VehicleRental.CLI",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        },
+        {
+            "name": "Launch DevTools CLI",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-devtools",
+            "program": "${workspaceFolder}/src/VehicleRental/VehicleRental.DevTools.CLI/bin/Debug/net10.0/VehicleRental.DevTools.CLI.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/src/VehicleRental/VehicleRental.DevTools.CLI",
+            "console": "integratedTerminal",
+            "stopAtEntry": false
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Launch All (Server + CLIs)",
+            "configurations": [
+                "Launch Server",
+                "Launch Client CLI",
+                "Launch DevTools CLI"
+            ],
+            "stopAll": true,
+            "presentation": {
+                "hidden": false,
+                "group": "all",
+                "order": 1
+            }
+        },
+        {
+            "name": "Launch Server + Client",
+            "configurations": [
+                "Launch Server",
+                "Launch Client CLI"
+            ],
+            "stopAll": true
+        },
+        {
+            "name": "Launch Server + DevTools",
+            "configurations": [
+                "Launch Server",
+                "Launch DevTools CLI"
+            ],
+            "stopAll": true
+        }
+    ]
 }

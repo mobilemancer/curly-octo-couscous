@@ -39,4 +39,10 @@ public interface IRentalRepository
     /// </summary>
     /// <param name="rental">The rental with updated values.</param>
     Task UpdateAsync(Rental rental);
+
+    /// <summary>
+    /// Gets all rentals from the repository.
+    /// </summary>
+    /// <returns>A collection of all rentals.</returns>
+    Task<IEnumerable<Rental>> GetAllAsync();
 }

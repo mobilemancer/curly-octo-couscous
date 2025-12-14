@@ -37,12 +37,19 @@ if (serverConfig == null)
 
 // Core services
 builder.Services.AddSingleton<IPriceFormulaEvaluator, SafeFormulaEvaluator>();
+builder.Services.AddSingleton<PricingCalculator>();
 builder.Services.AddSingleton<CheckoutService>();
 builder.Services.AddSingleton<ReturnService>();
 
 // Repositories
 builder.Services.AddSingleton<IRentalRepository, InMemoryRentalRepository>();
-builder.Services.AddSingleton<IVehicleCatalog, InMemoryVehicleCatalog>();
+builder.Services.AddSingleton<IVehicleCatalog>(sp =>
+{
+    var logger = sp.GetRequiredService<ILogger<InMemoryVehicleCatalog>>();
+    // mock vehicle repository data
+    var vehiclesFilePath = Path.Combine(AppContext.BaseDirectory, "Data", "vehicles.json");
+    return new InMemoryVehicleCatalog(vehiclesFilePath, logger);
+});
 
 // Vehicle Type Store - Remote or Local
 // Check if server is configured and available
@@ -57,22 +64,22 @@ if (!string.IsNullOrWhiteSpace(serverConfig.BaseUrl))
             serverConfig.ClientId,
             serverConfig.ApiKey,
             logger);
-        
-        // Initialize connection
-        store.InitializeAsync().GetAwaiter().GetResult();
-        
+
+        // Initialize connection (non-blocking, continues in background if server unavailable)
+        _ = store.InitializeAsync();
+
         return store;
     });
-    
-    Console.WriteLine($"✓ Connected to Vehicle Rental Server at {serverConfig.BaseUrl}");
-    Console.WriteLine($"✓ Authenticated as: {serverConfig.ClientId}");
-    Console.WriteLine($"✓ Real-time configuration updates enabled via SignalR");
+
+    Console.WriteLine($"🌐 Server: {serverConfig.BaseUrl}");
+    Console.WriteLine($"👤 Client: {serverConfig.ClientId}");
+    Console.WriteLine($"📡 Real-time configuration updates enabled");
 }
 else
 {
     // Fallback to local in-memory store
     builder.Services.AddSingleton<IVehicleTypeStore, InMemoryVehicleTypeStore>();
-    Console.WriteLine("⚠ Using local in-memory vehicle type store (no server connection)");
+    Console.WriteLine("⚠️  Using local in-memory vehicle type store (no server connection)");
 }
 
 // Build the host
@@ -227,21 +234,16 @@ static async Task CheckoutVehicleAsync(CheckoutService service, IVehicleTypeStor
         Console.WriteLine($"  - {vt.VehicleTypeId} ({vt.DisplayName})");
     }
 
-    Console.Write("\nEnter Booking Number: ");
-    var bookingNumber = Console.ReadLine()?.Trim();
-    if (string.IsNullOrWhiteSpace(bookingNumber))
-    {
-        Console.WriteLine("❌ Booking number is required.");
-        return;
-    }
-
-    Console.Write("Enter Vehicle Registration Number: ");
+    Console.Write("\nEnter Vehicle Registration Number (e.g., license plate, callsign): ");
     var registrationNumber = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(registrationNumber))
     {
         Console.WriteLine("❌ Registration number is required.");
         return;
     }
+
+    // Generate a unique, user-friendly booking number
+    var bookingNumber = $"BK-{DateTimeOffset.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..8].ToUpperInvariant()}";
 
     Console.Write("Enter Vehicle Type ID (optional, press Enter to skip): ");
     var vehicleTypeId = Console.ReadLine()?.Trim();
@@ -369,7 +371,52 @@ static async Task ListRentalsAsync(IRentalRepository repository, ILogger logger)
 {
     Console.WriteLine("\n📊 Rentals:");
     Console.WriteLine("─────────────────────────────────────────────────────────");
-    Console.WriteLine("  Note: This feature requires additional repository methods.");
-    Console.WriteLine("  For now, rentals are tracked internally in the repository.");
+
+    var rentals = await repository.GetAllAsync();
+    var rentalsList = rentals.ToList();
+
+    if (!rentalsList.Any())
+    {
+        Console.WriteLine("  No rentals found.");
+        return;
+    }
+
+    var activeRentals = rentalsList.Where(r => r.IsActive).ToList();
+    var completedRentals = rentalsList.Where(r => !r.IsActive).ToList();
+
+    if (activeRentals.Any())
+    {
+        Console.WriteLine("\n🚗 Active Rentals:");
+        Console.WriteLine("═══════════════════════════════════════════════════════════");
+        foreach (var rental in activeRentals)
+        {
+            Console.WriteLine($"\n  Booking Number: {rental.BookingNumber}");
+            Console.WriteLine($"  Vehicle: {rental.RegistrationNumber}");
+            Console.WriteLine($"  Type: {rental.VehicleTypeId}");
+            Console.WriteLine($"  Checked Out: {rental.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}");
+            Console.WriteLine($"  Odometer at Checkout: {rental.CheckoutOdometer:F1} km");
+            Console.WriteLine($"  Status: ✅ Active");
+        }
+    }
+
+    if (completedRentals.Any())
+    {
+        Console.WriteLine("\n🏁 Completed Rentals:");
+        Console.WriteLine("═══════════════════════════════════════════════════════════");
+        foreach (var rental in completedRentals)
+        {
+            Console.WriteLine($"\n  Booking Number: {rental.BookingNumber}");
+            Console.WriteLine($"  Vehicle: {rental.RegistrationNumber}");
+            Console.WriteLine($"  Type: {rental.VehicleTypeId}");
+            Console.WriteLine($"  Checked Out: {rental.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}");
+            Console.WriteLine($"  Returned: {rental.ReturnTimestamp:yyyy-MM-dd HH:mm:ss zzz}");
+            Console.WriteLine($"  Distance: {(rental.ReturnOdometer!.Value - rental.CheckoutOdometer):F1} km");
+            Console.WriteLine($"  Total Price: {rental.RentalPrice:F2} SEK");
+            Console.WriteLine($"  Status: ✔️  Completed");
+        }
+    }
+
+    Console.WriteLine("\n═══════════════════════════════════════════════════════════");
+    Console.WriteLine($"  Total: {rentalsList.Count} rentals ({activeRentals.Count} active, {completedRentals.Count} completed)");
 }
 

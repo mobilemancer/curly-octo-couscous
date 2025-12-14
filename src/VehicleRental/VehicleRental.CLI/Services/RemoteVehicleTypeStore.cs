@@ -19,8 +19,13 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
     private readonly ILogger<RemoteVehicleTypeStore> _logger;
     private readonly Dictionary<string, VehicleTypeDefinition> _cache = new();
     private readonly SemaphoreSlim _syncLock = new(1, 1);
+    private readonly string _clientId;
+    private readonly string _apiKey;
     private bool _isInitialized;
+    private bool _isConnected;
     private long _currentVersion;
+    private Task? _backgroundConnectionTask;
+    private string? _accessToken; // Store token explicitly
 
     public RemoteVehicleTypeStore(
         string serverBaseUrl,
@@ -29,12 +34,19 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         ILogger<RemoteVehicleTypeStore> logger)
     {
         _logger = logger;
-        _httpClient = new HttpClient { BaseAddress = new Uri(serverBaseUrl) };
+        _clientId = clientId;
+        _apiKey = apiKey;
+
+        // Create HttpClient with SSL certificate validation bypass for development
+        var handler = new HttpClientHandler();
+        handler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true;
+        _httpClient = new HttpClient(handler) { BaseAddress = new Uri(serverBaseUrl) };
 
         // Configure SignalR connection
         _hubConnection = new HubConnectionBuilder()
             .WithUrl($"{serverBaseUrl}/hubs/configuration", options =>
             {
+                options.HttpMessageHandlerFactory = _ => handler;
                 options.AccessTokenProvider = async () =>
                 {
                     // Authenticate and get JWT token
@@ -42,7 +54,7 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
                     return token;
                 };
             })
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
             .Build();
 
         // Subscribe to push notifications
@@ -50,55 +62,130 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
 
         _hubConnection.Reconnecting += error =>
         {
+            _isConnected = false;
             _logger.LogWarning("SignalR connection lost. Reconnecting... Error: {Error}", error?.Message);
             return Task.CompletedTask;
         };
 
         _hubConnection.Reconnected += connectionId =>
         {
+            _isConnected = true;
             _logger.LogInformation("SignalR reconnected. Connection ID: {ConnectionId}", connectionId);
             return ReloadAllAsync(); // Reload all data after reconnection
         };
 
         _hubConnection.Closed += error =>
         {
-            _logger.LogError("SignalR connection closed. Error: {Error}", error?.Message);
+            _isConnected = false;
+            _logger.LogWarning("SignalR connection closed. Error: {Error}", error?.Message);
+            // Start background reconnection task
+            _backgroundConnectionTask = Task.Run(async () => await TryConnectInBackgroundAsync());
             return Task.CompletedTask;
         };
     }
 
     /// <summary>
     /// Initialize the store by connecting to server and loading initial data.
+    /// Starts in background if server is unavailable.
     /// </summary>
     public async Task InitializeAsync()
     {
         if (_isInitialized)
             return;
 
-        await _syncLock.WaitAsync();
+        // Use a simple flag check without locking for initialization
+        // The lock in ReloadAllAsync will protect the cache during updates
+        if (_isInitialized)
+            return;
+
+        _logger.LogInformation("Initializing RemoteVehicleTypeStore...");
+        _isInitialized = true;
+
+        // Try to connect, but don't fail if server is unavailable
+        await TryConnectAsync();
+    }
+
+    private async Task TryConnectAsync()
+    {
         try
         {
-            if (_isInitialized)
-                return;
+            Console.WriteLine("🔄 Connecting to server...");
+            _logger.LogInformation("Attempting to connect to server...");
 
-            _logger.LogInformation("Initializing RemoteVehicleTypeStore...");
+            // Authenticate first to get JWT token
+            var token = await AuthenticateAsync(_clientId, _apiKey);
+            _logger.LogInformation("Authentication successful");
 
-            // Load initial data
+            // Load initial data (now with valid auth token)
             await ReloadAllAsync();
 
-            // Connect to SignalR hub
-            await _hubConnection.StartAsync();
-            _logger.LogInformation("SignalR connection established");
+            // Mark as connected after successful data load - API is working
+            _isConnected = true;
+            _logger.LogInformation("HTTP API connection successful, data loaded");
 
-            // Subscribe to updates
-            await _hubConnection.InvokeAsync("SubscribeToUpdates");
-            _logger.LogInformation("Subscribed to vehicle type updates");
+            // Try to connect to SignalR hub for real-time updates
+            try
+            {
+                await _hubConnection.StartAsync();
+                Console.WriteLine("✅ Connected to server with real-time updates");
+                _logger.LogInformation("SignalR connection established");
 
-            _isInitialized = true;
+                // Subscribe to updates
+                await _hubConnection.InvokeAsync("SubscribeToUpdates");
+                _logger.LogInformation("Subscribed to vehicle type updates");
+            }
+            catch (Exception signalREx)
+            {
+                // SignalR failed but HTTP API works - continue without real-time updates
+                Console.WriteLine("✅ Connected to server (real-time updates unavailable)");
+                _logger.LogWarning(signalREx, "SignalR connection failed, continuing with HTTP API only");
+            }
         }
-        finally
+        catch (Exception ex)
         {
-            _syncLock.Release();
+            _isConnected = false;
+            Console.WriteLine($"⚠️  Server unavailable. Will retry every 10 seconds...");
+            _logger.LogWarning(ex, "Failed to connect to server. Will retry in background.");
+
+            // Start background reconnection task
+            _backgroundConnectionTask = Task.Run(async () => await TryConnectInBackgroundAsync());
+        }
+    }
+
+    private async Task TryConnectInBackgroundAsync()
+    {
+        while (!_isConnected)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(10));
+
+            try
+            {
+                Console.WriteLine("🔄 Attempting to reconnect to server...");
+                _logger.LogInformation("Background reconnection attempt...");
+
+                // Authenticate first
+                var token = await AuthenticateAsync(_clientId, _apiKey);
+
+                // Try to reload data
+                await ReloadAllAsync();
+
+                // Try to connect SignalR if not connected
+                if (_hubConnection.State == HubConnectionState.Disconnected)
+                {
+                    await _hubConnection.StartAsync();
+                    await _hubConnection.InvokeAsync("SubscribeToUpdates");
+                }
+
+                _isConnected = true;
+                Console.WriteLine("✅ Reconnected to server successfully");
+                _logger.LogInformation("Successfully reconnected to server");
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Reconnection attempt failed, will retry...");
+                // Continue retrying
+            }
         }
     }
 
@@ -128,9 +215,15 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         _logger.LogInformation("Authenticated successfully as {ClientName}. Token expires in {Seconds}s",
             authResponse.ClientName, authResponse.ExpiresInSeconds);
 
-        // Set authorization header for HTTP requests
+        // Store token for use in API requests
+        _accessToken = authResponse.AccessToken;
+
+        // Also set on DefaultRequestHeaders (for reference, but we'll use explicit headers)
         _httpClient.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", authResponse.AccessToken);
+
+        _logger.LogDebug("Authorization header set on HttpClient. Token starts with: {TokenPrefix}...",
+            authResponse.AccessToken.Substring(0, Math.Min(20, authResponse.AccessToken.Length)));
 
         return authResponse.AccessToken;
     }
@@ -139,19 +232,45 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
     {
         _logger.LogInformation("Reloading all vehicle types from server...");
 
-        var response = await _httpClient.GetAsync("/api/vehicle-types");
+        // Use HttpRequestMessage with explicit Authorization header
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/vehicle-types");
+        if (_accessToken != null)
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _accessToken);
+        }
+        else
+        {
+            _logger.LogWarning("No access token available - request will fail");
+        }
+
+        var response = await _httpClient.SendAsync(request);
+        _logger.LogInformation("Received response with status {StatusCode}", response.StatusCode);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorBody = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Request to /api/vehicle-types failed with status {StatusCode}. Response: {Response}",
+                response.StatusCode, errorBody);
+            throw new HttpRequestException($"Request failed with status {response.StatusCode}: {errorBody}");
+        }
+
         response.EnsureSuccessStatusCode();
 
+        _logger.LogInformation("Parsing JSON response...");
         var dtos = await response.Content.ReadFromJsonAsync<List<VehicleTypeDto>>();
+        _logger.LogInformation("Parsed {Count} vehicle types from response", dtos?.Count ?? 0);
+
         if (dtos == null)
         {
             _logger.LogWarning("Server returned null vehicle types list");
             return;
         }
 
+        _logger.LogInformation("Acquiring sync lock to update cache...");
         await _syncLock.WaitAsync();
         try
         {
+            _logger.LogInformation("Updating cache with {Count} vehicle types", dtos.Count);
             _cache.Clear();
             foreach (var dto in dtos)
             {
@@ -173,8 +292,11 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         }
         finally
         {
+            _logger.LogInformation("Releasing sync lock");
             _syncLock.Release();
         }
+
+        _logger.LogInformation("ReloadAllAsync completed successfully");
     }
 
     private async void HandleVehicleTypeUpdate(VehicleTypeUpdateNotification notification)
@@ -221,6 +343,12 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         if (!_isInitialized)
             await InitializeAsync();
 
+        if (!_isConnected)
+        {
+            _logger.LogWarning("Not connected to server, returning null for {VehicleTypeId}", vehicleTypeId);
+            return null;
+        }
+
         await _syncLock.WaitAsync();
         try
         {
@@ -236,6 +364,12 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
     {
         if (!_isInitialized)
             await InitializeAsync();
+
+        if (!_isConnected)
+        {
+            _logger.LogWarning("Not connected to server, returning empty list");
+            return Array.Empty<VehicleTypeDefinition>();
+        }
 
         await _syncLock.WaitAsync();
         try

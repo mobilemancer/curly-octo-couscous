@@ -33,33 +33,42 @@ var logger = host.Services.GetRequiredService<ILogger<Program>>();
 Console.WriteLine("╔═══════════════════════════════════════════════════════════════╗");
 Console.WriteLine("║     Vehicle Rental Server - Administration Tool              ║");
 Console.WriteLine("╚═══════════════════════════════════════════════════════════════╝");
-Console.WriteLine($"\nServer: {serverConfig.BaseUrl}");
-Console.WriteLine($"Admin Client: {serverConfig.ClientId}");
+Console.WriteLine($"\n🌐 Server: {serverConfig.BaseUrl}");
+Console.WriteLine($"👤 Admin: {serverConfig.ClientId}");
 Console.WriteLine();
 
-using var httpClient = new HttpClient { BaseAddress = new Uri(serverConfig.BaseUrl) };
+// Create HttpClient with SSL certificate validation bypass for development
+var handler = new HttpClientHandler();
+handler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true;
+using var httpClient = new HttpClient(handler) { BaseAddress = new Uri(serverConfig.BaseUrl) };
 
-// Authenticate
-try
+// Authenticate with retry logic
+ClientAuthResponse? authResponse = null;
+while (authResponse == null)
 {
-    var authResponse = await AuthenticateAsync(httpClient, serverConfig.ClientId, serverConfig.ApiKey, logger);
-    if (authResponse == null)
+    try
     {
-        Console.WriteLine("❌ Authentication failed. Exiting.");
-        return 1;
+        Console.WriteLine("🔄 Connecting to server...");
+        authResponse = await AuthenticateAsync(httpClient, serverConfig.ClientId, serverConfig.ApiKey, logger);
+        if (authResponse == null)
+        {
+            Console.WriteLine("⚠️  Authentication failed. Retrying in 10 seconds...");
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            continue;
+        }
+
+        httpClient.DefaultRequestHeaders.Authorization =
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponse.AccessToken);
+
+        Console.WriteLine($"✅ Authenticated as: {authResponse.ClientName}");
+        Console.WriteLine();
     }
-    
-    httpClient.DefaultRequestHeaders.Authorization = 
-        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", authResponse.AccessToken);
-    
-    Console.WriteLine($"✓ Authenticated as: {authResponse.ClientName}");
-    Console.WriteLine();
-}
-catch (Exception ex)
-{
-    logger.LogError(ex, "Authentication error");
-    Console.WriteLine($"❌ Failed to connect to server: {ex.Message}");
-    return 1;
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Connection attempt failed");
+        Console.WriteLine($"⚠️  Server unavailable. Retrying in 10 seconds...");
+        await Task.Delay(TimeSpan.FromSeconds(10));
+    }
 }
 
 // Main menu loop
@@ -76,9 +85,9 @@ while (true)
     Console.WriteLine("  5. exit       - Exit tool");
     Console.WriteLine("═══════════════════════════════════════════════════════════════");
     Console.Write("\nEnter command: ");
-    
+
     var command = Console.ReadLine()?.Trim().ToLowerInvariant();
-    
+
     try
     {
         switch (command)
@@ -87,27 +96,27 @@ while (true)
             case "list":
                 await ListVehicleTypesAsync(httpClient, logger);
                 break;
-                
+
             case "2":
             case "add":
                 await AddVehicleTypeAsync(httpClient, logger);
                 break;
-                
+
             case "3":
             case "update":
                 await UpdateVehicleTypeAsync(httpClient, logger);
                 break;
-                
+
             case "4":
             case "delete":
                 await DeleteVehicleTypeAsync(httpClient, logger);
                 break;
-                
+
             case "5":
             case "exit":
                 Console.WriteLine("\n👋 Goodbye!");
                 return 0;
-                
+
             default:
                 Console.WriteLine("\n❌ Invalid command.");
                 break;
@@ -115,8 +124,9 @@ while (true)
     }
     catch (HttpRequestException ex)
     {
-        logger.LogError(ex, "HTTP request failed");
-        Console.WriteLine($"\n❌ Request failed: {ex.Message}");
+        logger.LogWarning(ex, "HTTP request failed");
+        Console.WriteLine($"\n⚠️  Connection issue: {ex.Message}");
+        Console.WriteLine("The server may be temporarily unavailable. Command will retry on next attempt.");
     }
     catch (Exception ex)
     {
@@ -130,9 +140,9 @@ while (true)
 // =================================================================
 
 static async Task<ClientAuthResponse?> AuthenticateAsync(
-    HttpClient client, 
-    string clientId, 
-    string apiKey, 
+    HttpClient client,
+    string clientId,
+    string apiKey,
     ILogger logger)
 {
     var request = new ClientAuthRequest
@@ -140,15 +150,15 @@ static async Task<ClientAuthResponse?> AuthenticateAsync(
         ClientId = clientId,
         ApiKey = apiKey
     };
-    
+
     var response = await client.PostAsJsonAsync("/api/clients/authenticate", request);
-    
+
     if (!response.IsSuccessStatusCode)
     {
         logger.LogError("Authentication failed: {StatusCode}", response.StatusCode);
         return null;
     }
-    
+
     return await response.Content.ReadFromJsonAsync<ClientAuthResponse>();
 }
 
@@ -156,18 +166,18 @@ static async Task ListVehicleTypesAsync(HttpClient client, ILogger logger)
 {
     Console.WriteLine("\n📋 Vehicle Types:");
     Console.WriteLine("─────────────────────────────────────────────────────────────");
-    
+
     var response = await client.GetAsync("/api/vehicle-types");
     response.EnsureSuccessStatusCode();
-    
+
     var vehicleTypes = await response.Content.ReadFromJsonAsync<List<VehicleTypeDto>>();
-    
+
     if (vehicleTypes == null || vehicleTypes.Count == 0)
     {
         Console.WriteLine("  No vehicle types found.");
         return;
     }
-    
+
     foreach (var vt in vehicleTypes)
     {
         Console.WriteLine($"\n  ID: {vt.VehicleTypeId}");
@@ -185,7 +195,7 @@ static async Task AddVehicleTypeAsync(HttpClient client, ILogger logger)
 {
     Console.WriteLine("\n➕ Add New Vehicle Type");
     Console.WriteLine("─────────────────────────────────────────────────────────────");
-    
+
     Console.Write("\nVehicle Type ID (e.g., 'luxury-car'): ");
     var id = Console.ReadLine()?.Trim().ToLowerInvariant();
     if (string.IsNullOrWhiteSpace(id))
@@ -193,7 +203,7 @@ static async Task AddVehicleTypeAsync(HttpClient client, ILogger logger)
         Console.WriteLine("❌ ID is required.");
         return;
     }
-    
+
     Console.Write("Display Name (e.g., 'Luxury Car'): ");
     var displayName = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(displayName))
@@ -201,7 +211,7 @@ static async Task AddVehicleTypeAsync(HttpClient client, ILogger logger)
         Console.WriteLine("❌ Display name is required.");
         return;
     }
-    
+
     Console.Write("Pricing Formula (e.g., '(baseDayRate * days * 2) + (baseKmPrice * km * 1.5)'): ");
     var formula = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(formula))
@@ -209,10 +219,10 @@ static async Task AddVehicleTypeAsync(HttpClient client, ILogger logger)
         Console.WriteLine("❌ Formula is required.");
         return;
     }
-    
+
     Console.Write("Description (optional): ");
     var description = Console.ReadLine()?.Trim();
-    
+
     var newVehicleType = new VehicleTypeDto
     {
         VehicleTypeId = id,
@@ -222,9 +232,9 @@ static async Task AddVehicleTypeAsync(HttpClient client, ILogger logger)
         Version = 0,
         LastUpdated = DateTimeOffset.UtcNow
     };
-    
+
     var response = await client.PostAsJsonAsync("/api/vehicle-types", newVehicleType);
-    
+
     if (response.IsSuccessStatusCode)
     {
         Console.WriteLine($"\n✓ Vehicle type '{displayName}' added successfully!");
@@ -241,7 +251,7 @@ static async Task UpdateVehicleTypeAsync(HttpClient client, ILogger logger)
 {
     Console.WriteLine("\n✏️  Update Vehicle Type");
     Console.WriteLine("─────────────────────────────────────────────────────────────");
-    
+
     Console.Write("\nVehicle Type ID to update: ");
     var id = Console.ReadLine()?.Trim().ToLowerInvariant();
     if (string.IsNullOrWhiteSpace(id))
@@ -249,7 +259,7 @@ static async Task UpdateVehicleTypeAsync(HttpClient client, ILogger logger)
         Console.WriteLine("❌ ID is required.");
         return;
     }
-    
+
     // Fetch existing
     var getResponse = await client.GetAsync($"/api/vehicle-types/{id}");
     if (!getResponse.IsSuccessStatusCode)
@@ -257,31 +267,31 @@ static async Task UpdateVehicleTypeAsync(HttpClient client, ILogger logger)
         Console.WriteLine($"❌ Vehicle type '{id}' not found.");
         return;
     }
-    
+
     var existing = await getResponse.Content.ReadFromJsonAsync<VehicleTypeDto>();
     if (existing == null)
     {
         Console.WriteLine($"❌ Failed to load vehicle type.");
         return;
     }
-    
+
     Console.WriteLine($"\nCurrent values:");
     Console.WriteLine($"  Display Name: {existing.DisplayName}");
     Console.WriteLine($"  Formula: {existing.PricingFormula}");
     Console.WriteLine($"  Description: {existing.Description ?? "(none)"}");
-    
+
     Console.Write($"\nNew Display Name (or Enter to keep '{existing.DisplayName}'): ");
     var displayName = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(displayName)) displayName = existing.DisplayName;
-    
+
     Console.Write($"\nNew Pricing Formula (or Enter to keep current): ");
     var formula = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(formula)) formula = existing.PricingFormula;
-    
+
     Console.Write($"\nNew Description (or Enter to keep current): ");
     var description = Console.ReadLine()?.Trim();
     if (string.IsNullOrWhiteSpace(description)) description = existing.Description;
-    
+
     var updated = new VehicleTypeDto
     {
         VehicleTypeId = id,
@@ -291,9 +301,9 @@ static async Task UpdateVehicleTypeAsync(HttpClient client, ILogger logger)
         Version = existing.Version + 1,
         LastUpdated = DateTimeOffset.UtcNow
     };
-    
+
     var response = await client.PutAsJsonAsync($"/api/vehicle-types/{id}", updated);
-    
+
     if (response.IsSuccessStatusCode)
     {
         Console.WriteLine($"\n✓ Vehicle type '{displayName}' updated successfully!");
@@ -310,7 +320,7 @@ static async Task DeleteVehicleTypeAsync(HttpClient client, ILogger logger)
 {
     Console.WriteLine("\n🗑️  Delete Vehicle Type");
     Console.WriteLine("─────────────────────────────────────────────────────────────");
-    
+
     Console.Write("\nVehicle Type ID to delete: ");
     var id = Console.ReadLine()?.Trim().ToLowerInvariant();
     if (string.IsNullOrWhiteSpace(id))
@@ -318,7 +328,7 @@ static async Task DeleteVehicleTypeAsync(HttpClient client, ILogger logger)
         Console.WriteLine("❌ ID is required.");
         return;
     }
-    
+
     Console.Write($"⚠️  Are you sure you want to delete '{id}'? (yes/no): ");
     var confirm = Console.ReadLine()?.Trim().ToLowerInvariant();
     if (confirm != "yes")
@@ -326,9 +336,9 @@ static async Task DeleteVehicleTypeAsync(HttpClient client, ILogger logger)
         Console.WriteLine("Cancelled.");
         return;
     }
-    
+
     var response = await client.DeleteAsync($"/api/vehicle-types/{id}");
-    
+
     if (response.IsSuccessStatusCode)
     {
         Console.WriteLine($"\n✓ Vehicle type '{id}' deleted successfully!");

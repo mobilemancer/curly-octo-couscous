@@ -5,3 +5,5 @@
 3. Rounding for final price presentation rounds up to nearest integer value.
 4. An inital set of vehicles available for rental is available to the system on startup.
 5. We're assuming user timezone is the same as system timezone, and will fetch this on app startup.
+6. Vehicle License plates are unique.
+7. There are vehicles that don't have license plates.

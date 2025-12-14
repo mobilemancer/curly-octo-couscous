@@ -32,6 +32,11 @@ public sealed class VehicleTypesController : ControllerBase
     [ProducesResponseType(typeof(List<VehicleTypeDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll()
     {
+        // Debug: Check authorization header
+        var authHeader = Request.Headers.Authorization.ToString();
+        _logger.LogDebug("GetAll called. Auth header present: {Present}, User authenticated: {Authenticated}",
+            !string.IsNullOrEmpty(authHeader), User.Identity?.IsAuthenticated ?? false);
+
         var clientId = User.FindFirst("client_id")?.Value ?? "unknown";
         _logger.LogInformation("Client {ClientId} requested all vehicle types", clientId);
 

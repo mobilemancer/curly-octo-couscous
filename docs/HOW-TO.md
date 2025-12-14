@@ -41,3 +41,18 @@ The client cna also receive updated VehicleType information.
 Used to administer the VehicleRental system.
 Enables CRUD operations over VehicleTypes.
 
+
+
+dir -Recurse -Include *.cs,*.md | Get-Content | Measure-Object -Line
+
+truck
+GHI791
+(enter)
+2025-1
+2025-12-14T17:00
+1
+
+GHI791
+2025-12-14T17:00
+500
+30

@@ -10,5 +10,5 @@
 8. There are vehicles that don't rent by the km or day - we don't support those.
 9. We don't want to keep social security numbers or eqv right now, so we let users rent with customerId.
 10. Max rental time is 60 days.
-11. An invoice will always be created - if it's an invalid booking then economy will have to fix it xD
+11. An invoice will always be created - if it's an invalid booking the billing dpt will have to fix it xD
 12. This system needs a working internet, without that it won't work.

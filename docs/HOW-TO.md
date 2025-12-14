@@ -60,3 +60,23 @@ There are no real third party Auth, or Data storage - they are all mocked in thi
 ## System Design Structure
 
 See `architecture-diagram.md` for relevant mermaid diagrams describing the system, communication patterns and data ownership and boundaries.
+
+## Tests
+
+Unit tests are available in the `VehicleRental.Core.Tests` project using xUnit.
+
+**Test categories:**
+
+- **Application** - CheckoutService, ReturnService, and end-to-end rental scenarios
+- **Pricing** - SafeFormulaEvaluator tests for pricing formula evaluation
+- **Helpers** - RentalCalculations, VehicleTypeIdNormalizer, timezone handling
+
+**Running tests:**
+
+```bash
+# From the solution root
+dotnet test
+
+# Or run the VS Code/Visual Studio test task
+# VS Code: Ctrl+Shift+P → "Tasks: Run Task" → "test"
+```

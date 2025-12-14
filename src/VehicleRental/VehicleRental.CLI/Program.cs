@@ -544,7 +544,7 @@ static async Task ReturnVehicleAsync(ReturnService service, IRentalRepository re
     checkoutInfoTable.AddRow("[cyan]Customer ID:[/]", $"[white]{selectedRental.CustomerId.EscapeMarkup()}[/]");
     checkoutInfoTable.AddRow("[cyan]Vehicle:[/]", $"[white]{selectedRental.RegistrationNumber.EscapeMarkup()}[/]");
     checkoutInfoTable.AddRow("[cyan]Type:[/]", $"[white]{selectedRental.VehicleTypeId.EscapeMarkup()}[/]");
-    checkoutInfoTable.AddRow("[cyan]Checked Out:[/]", $"[white]{selectedRental.CheckoutTimestamp:yyyy-MM-dd HH:mm:ss zzz}[/]");
+    checkoutInfoTable.AddRow("[cyan]Checked Out:[/]", $"[white]{selectedRental.CheckoutTimestamp:yyyy-MM-dd HH:mm}[/]");
     checkoutInfoTable.AddRow("[cyan]Checkout Odometer:[/]", $"[white]{selectedRental.CheckoutOdometer:F0} km[/]");
 
     AnsiConsole.Write(

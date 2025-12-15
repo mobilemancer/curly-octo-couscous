@@ -8,15 +8,10 @@ namespace VehicleRental.Infrastructure.Repositories;
 /// <summary>
 /// In-memory implementation of rental repository for Phase 1.
 /// </summary>
-public class InMemoryRentalRepository : IRentalRepository
+public class InMemoryRentalRepository(ILogger<InMemoryRentalRepository> logger) : IRentalRepository
 {
     private readonly ConcurrentDictionary<string, Rental> _rentals = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ILogger<InMemoryRentalRepository> _logger;
-
-    public InMemoryRentalRepository(ILogger<InMemoryRentalRepository> logger)
-    {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ILogger<InMemoryRentalRepository> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public Task<bool> ExistsAsync(string bookingNumber)
     {
@@ -55,10 +50,7 @@ public class InMemoryRentalRepository : IRentalRepository
 
     public Task AddAsync(Rental rental)
     {
-        if (rental is null)
-        {
-            throw new ArgumentNullException(nameof(rental));
-        }
+        ArgumentNullException.ThrowIfNull(rental);
 
         if (!_rentals.TryAdd(rental.BookingNumber, rental))
         {
@@ -74,10 +66,7 @@ public class InMemoryRentalRepository : IRentalRepository
 
     public Task UpdateAsync(Rental rental)
     {
-        if (rental is null)
-        {
-            throw new ArgumentNullException(nameof(rental));
-        }
+        ArgumentNullException.ThrowIfNull(rental);
 
         _rentals[rental.BookingNumber] = rental;
 

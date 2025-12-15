@@ -14,6 +14,10 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
 {
     private readonly ConcurrentDictionary<string, Vehicle> _vehicles = new(StringComparer.OrdinalIgnoreCase);
     private readonly ILogger<InMemoryVehicleCatalog> _logger;
+    private readonly JsonSerializerOptions serializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     public InMemoryVehicleCatalog(string jsonFilePath, ILogger<InMemoryVehicleCatalog> logger)
     {
@@ -66,10 +70,7 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
 
     public Task<bool> AddVehicleAsync(Vehicle vehicle)
     {
-        if (vehicle == null)
-        {
-            throw new ArgumentNullException(nameof(vehicle));
-        }
+        ArgumentNullException.ThrowIfNull(vehicle);
 
         if (string.IsNullOrWhiteSpace(vehicle.RegistrationNumber))
         {
@@ -127,10 +128,8 @@ public class InMemoryVehicleCatalog : IVehicleCatalog
             }
 
             var json = File.ReadAllText(filePath);
-            var vehicles = JsonSerializer.Deserialize<List<VehicleDto>>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+        
+            var vehicles = JsonSerializer.Deserialize<List<VehicleDto>>(json, serializerOptions);
 
             if (vehicles is null || vehicles.Count == 0)
             {

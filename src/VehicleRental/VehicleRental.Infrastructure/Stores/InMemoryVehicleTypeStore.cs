@@ -16,6 +16,10 @@ public class InMemoryVehicleTypeStore : IVehicleTypeStore
     private readonly IPriceFormulaEvaluator _formulaEvaluator;
     private readonly ILogger<InMemoryVehicleTypeStore> _logger;
     private readonly string _jsonFilePath;
+    private readonly JsonSerializerOptions serializerOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     public InMemoryVehicleTypeStore(
         string jsonFilePath,
@@ -55,7 +59,7 @@ public class InMemoryVehicleTypeStore : IVehicleTypeStore
 
     public Task<IReadOnlyCollection<VehicleTypeDefinition>> GetAllAsync()
     {
-        IReadOnlyCollection<VehicleTypeDefinition> types = _vehicleTypes.Values.ToList();
+        IReadOnlyCollection<VehicleTypeDefinition> types = [.. _vehicleTypes.Values];
         return Task.FromResult(types);
     }
 
@@ -79,10 +83,8 @@ public class InMemoryVehicleTypeStore : IVehicleTypeStore
             }
 
             var json = File.ReadAllText(_jsonFilePath);
-            var dtos = JsonSerializer.Deserialize<List<VehicleTypeDto>>(json, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+          
+            var dtos = JsonSerializer.Deserialize<List<VehicleTypeDto>>(json, serializerOptions);
 
             if (dtos is null || dtos.Count == 0)
             {

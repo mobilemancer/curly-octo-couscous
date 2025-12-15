@@ -21,11 +21,7 @@ builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Warning); // Less verbose for admin tool
 
 // Load server configuration
-var serverConfig = builder.Configuration.GetSection("Server").Get<ServerConfiguration>();
-if (serverConfig == null)
-{
-    throw new InvalidOperationException("Server configuration missing in appsettings.json");
-}
+var serverConfig = builder.Configuration.GetSection("Server").Get<ServerConfiguration>() ?? throw new InvalidOperationException("Server configuration missing in appsettings.json");
 
 var host = builder.Build();
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
@@ -38,8 +34,10 @@ Console.WriteLine($"👤 Admin: {serverConfig.ClientId}");
 Console.WriteLine();
 
 // Create HttpClient with SSL certificate validation bypass for development
-var handler = new HttpClientHandler();
-handler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true;
+var handler = new HttpClientHandler
+{
+    ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+};
 using var httpClient = new HttpClient(handler) { BaseAddress = new Uri(serverConfig.BaseUrl) };
 
 // Authenticate with retry logic

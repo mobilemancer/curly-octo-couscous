@@ -17,7 +17,7 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
     private readonly HttpClient _httpClient;
     private readonly HubConnection _hubConnection;
     private readonly ILogger<RemoteVehicleTypeStore> _logger;
-    private readonly Dictionary<string, VehicleTypeDefinition> _cache = new();
+    private readonly Dictionary<string, VehicleTypeDefinition> _cache = [];
     private readonly SemaphoreSlim _syncLock = new(1, 1);
     private bool _isInitialized;
     private long _currentVersion;
@@ -240,7 +240,7 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         await _syncLock.WaitAsync();
         try
         {
-            return _cache.Values.ToList();
+            return [.. _cache.Values];
         }
         finally
         {

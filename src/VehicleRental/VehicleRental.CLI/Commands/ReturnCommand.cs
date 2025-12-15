@@ -9,21 +9,14 @@ namespace VehicleRental.CLI.Commands;
 /// <summary>
 /// Command to return a rented vehicle and calculate the rental price.
 /// </summary>
-public class ReturnCommand
+public class ReturnCommand(
+    ReturnService returnService,
+    IRentalRepository rentalRepository,
+    IVehicleCatalog vehicleCatalog)
 {
-    private readonly ReturnService _returnService;
-    private readonly IRentalRepository _rentalRepository;
-    private readonly IVehicleCatalog _vehicleCatalog;
-
-    public ReturnCommand(
-        ReturnService returnService,
-        IRentalRepository rentalRepository,
-        IVehicleCatalog vehicleCatalog)
-    {
-        _returnService = returnService;
-        _rentalRepository = rentalRepository;
-        _vehicleCatalog = vehicleCatalog;
-    }
+    private readonly ReturnService _returnService = returnService;
+    private readonly IRentalRepository _rentalRepository = rentalRepository;
+    private readonly IVehicleCatalog _vehicleCatalog = vehicleCatalog;
 
     public async Task ExecuteAsync()
     {
@@ -36,7 +29,7 @@ public class ReturnCommand
             .OrderByDescending(r => r.CheckoutTimestamp)
             .ToList();
 
-        if (!activeRentals.Any())
+        if (activeRentals.Count == 0)
         {
             ConsoleRenderer.DisplayWarning("No active bookings found.");
             return;

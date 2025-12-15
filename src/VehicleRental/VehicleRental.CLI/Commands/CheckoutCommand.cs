@@ -8,24 +8,16 @@ namespace VehicleRental.CLI.Commands;
 /// <summary>
 /// Command to check out a vehicle to a customer.
 /// </summary>
-public class CheckoutCommand
+public class CheckoutCommand(
+    CheckoutService checkoutService,
+    IVehicleTypeStore vehicleTypeStore,
+    IVehicleCatalog vehicleCatalog,
+    IRentalRepository rentalRepository)
 {
-    private readonly CheckoutService _checkoutService;
-    private readonly IVehicleTypeStore _vehicleTypeStore;
-    private readonly IVehicleCatalog _vehicleCatalog;
-    private readonly IRentalRepository _rentalRepository;
-
-    public CheckoutCommand(
-        CheckoutService checkoutService,
-        IVehicleTypeStore vehicleTypeStore,
-        IVehicleCatalog vehicleCatalog,
-        IRentalRepository rentalRepository)
-    {
-        _checkoutService = checkoutService;
-        _vehicleTypeStore = vehicleTypeStore;
-        _vehicleCatalog = vehicleCatalog;
-        _rentalRepository = rentalRepository;
-    }
+    private readonly CheckoutService _checkoutService = checkoutService;
+    private readonly IVehicleTypeStore _vehicleTypeStore = vehicleTypeStore;
+    private readonly IVehicleCatalog _vehicleCatalog = vehicleCatalog;
+    private readonly IRentalRepository _rentalRepository = rentalRepository;
 
     public async Task ExecuteAsync()
     {
@@ -35,7 +27,7 @@ public class CheckoutCommand
         var vehicleTypes = await _vehicleTypeStore.GetAllAsync();
         var typesList = vehicleTypes.ToList();
 
-        if (!typesList.Any())
+        if (typesList.Count == 0)
         {
             ConsoleRenderer.DisplayError("No vehicle types available.");
             return;
@@ -63,7 +55,7 @@ public class CheckoutCommand
             .Where(v => !rentedVehicleRegistrations.Contains(v.RegistrationNumber))
             .ToList();
 
-        if (!availableVehicles.Any())
+        if (availableVehicles.Count == 0)
         {
             ConsoleRenderer.DisplayWarning($"No vehicles available for type '{selectedType.DisplayName}'.");
             return;

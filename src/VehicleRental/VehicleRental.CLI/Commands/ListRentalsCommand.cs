@@ -6,14 +6,9 @@ namespace VehicleRental.CLI.Commands;
 /// <summary>
 /// Command to list all rentals (active and completed).
 /// </summary>
-public class ListRentalsCommand
+public class ListRentalsCommand(IRentalRepository rentalRepository)
 {
-    private readonly IRentalRepository _rentalRepository;
-
-    public ListRentalsCommand(IRentalRepository rentalRepository)
-    {
-        _rentalRepository = rentalRepository;
-    }
+    private readonly IRentalRepository _rentalRepository = rentalRepository;
 
     public async Task ExecuteAsync()
     {
@@ -23,7 +18,7 @@ public class ListRentalsCommand
 
         var rentalsList = rentals.ToList();
 
-        if (!rentalsList.Any())
+        if (rentalsList.Count == 0)
         {
             ConsoleRenderer.DisplayWarning("No rentals found.");
             return;

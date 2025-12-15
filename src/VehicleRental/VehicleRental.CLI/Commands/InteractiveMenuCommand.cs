@@ -7,27 +7,18 @@ namespace VehicleRental.CLI.Commands;
 /// <summary>
 /// Orchestrates the interactive menu loop, delegating to individual commands.
 /// </summary>
-public class InteractiveMenuCommand
+public class InteractiveMenuCommand(
+    ServerConfiguration serverConfig,
+    ListVehicleTypesCommand listVehicleTypesCommand,
+    CheckoutCommand checkoutCommand,
+    ReturnCommand returnCommand,
+    ListRentalsCommand listRentalsCommand)
 {
-    private readonly ServerConfiguration _serverConfig;
-    private readonly ListVehicleTypesCommand _listVehicleTypesCommand;
-    private readonly CheckoutCommand _checkoutCommand;
-    private readonly ReturnCommand _returnCommand;
-    private readonly ListRentalsCommand _listRentalsCommand;
-
-    public InteractiveMenuCommand(
-        ServerConfiguration serverConfig,
-        ListVehicleTypesCommand listVehicleTypesCommand,
-        CheckoutCommand checkoutCommand,
-        ReturnCommand returnCommand,
-        ListRentalsCommand listRentalsCommand)
-    {
-        _serverConfig = serverConfig;
-        _listVehicleTypesCommand = listVehicleTypesCommand;
-        _checkoutCommand = checkoutCommand;
-        _returnCommand = returnCommand;
-        _listRentalsCommand = listRentalsCommand;
-    }
+    private readonly ServerConfiguration _serverConfig = serverConfig;
+    private readonly ListVehicleTypesCommand _listVehicleTypesCommand = listVehicleTypesCommand;
+    private readonly CheckoutCommand _checkoutCommand = checkoutCommand;
+    private readonly ReturnCommand _returnCommand = returnCommand;
+    private readonly ListRentalsCommand _listRentalsCommand = listRentalsCommand;
 
     public async Task RunAsync()
     {

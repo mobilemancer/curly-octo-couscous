@@ -24,7 +24,7 @@ public static class ConsolePrompts
     {
         var typesList = vehicleTypes.ToList();
 
-        if (!typesList.Any())
+        if (typesList.Count == 0)
         {
             return new PromptResult<VehicleTypeDefinition>(false, null);
         }
@@ -37,7 +37,7 @@ public static class ConsolePrompts
             Description = null
         };
 
-        var typesWithCancel = typesList.Concat(new[] { cancelType }).ToList();
+        var typesWithCancel = typesList.Concat([cancelType]).ToList();
 
         var selected = AnsiConsole.Prompt(
             new SelectionPrompt<VehicleTypeDefinition>()
@@ -63,7 +63,7 @@ public static class ConsolePrompts
     {
         var vehiclesList = vehicles.ToList();
 
-        if (!vehiclesList.Any())
+        if (vehiclesList.Count == 0)
         {
             return new PromptResult<Vehicle>(false, null);
         }
@@ -76,7 +76,7 @@ public static class ConsolePrompts
             Location = "cancel"
         };
 
-        var vehiclesWithCancel = vehiclesList.Concat(new[] { cancelVehicle }).ToList();
+        var vehiclesWithCancel = vehiclesList.Concat([cancelVehicle]).ToList();
 
         var selected = AnsiConsole.Prompt(
             new SelectionPrompt<Vehicle>()
@@ -99,7 +99,7 @@ public static class ConsolePrompts
     {
         var rentalsList = rentals.ToList();
 
-        if (!rentalsList.Any())
+        if (rentalsList.Count == 0)
         {
             return new PromptResult<Rental>(false, null);
         }
@@ -114,7 +114,7 @@ public static class ConsolePrompts
             CheckoutOdometer = 0
         };
 
-        var rentalsWithCancel = rentalsList.Concat(new[] { cancelRental }).ToList();
+        var rentalsWithCancel = rentalsList.Concat([cancelRental]).ToList();
 
         // Display header for the selection
         AnsiConsole.MarkupLine("[grey]Use arrow keys to select, Enter to confirm:[/]");
@@ -235,13 +235,13 @@ public static class ConsolePrompts
         return AnsiConsole.Prompt(
             new SelectionPrompt<string>()
                 .PageSize(10)
-                .AddChoices(new[]
-                {
+                .AddChoices(
+                [
                     "📋 List Vehicle Types",
                     "🚗 Check Out Vehicle",
                     "🏁 Return Vehicle",
                     "📊 List All Rentals",
                     "🚪 Exit"
-                }));
+                ]));
     }
 }

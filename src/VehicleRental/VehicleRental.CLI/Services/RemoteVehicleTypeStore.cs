@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using VehicleRental.Core.Domain;
-using VehicleRental.Core.Helpers;
 using VehicleRental.Core.Ports;
 using VehicleRental.Shared.Contracts;
 
@@ -19,15 +18,15 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
     private readonly HttpClient _httpClient;
     private readonly HubConnection _hubConnection;
     private readonly ILogger<RemoteVehicleTypeStore> _logger;
-    private readonly Dictionary<string, VehicleTypeDefinition> _cache = new();
+    private readonly Dictionary<string, VehicleTypeDefinition> _cache = [];
     private readonly SemaphoreSlim _syncLock = new(1, 1);
     private readonly string _clientId;
     private readonly string _apiKey;
     private bool _isInitialized;
     private bool _isConnected;
     private long _currentVersion;
-    private Task? _backgroundConnectionTask;
-    private string? _accessToken; // Store token explicitly
+    private string? _accessToken;
+    private Task _backgroundConnectionTask;
 
     /// <summary>
     /// Event fired when a vehicle update is received from the server.
@@ -46,8 +45,10 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         _apiKey = apiKey;
 
         // Create HttpClient with SSL certificate validation bypass for development
-        var handler = new HttpClientHandler();
-        handler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true;
+        var handler = new HttpClientHandler
+        {
+            ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) => true
+        };
         _httpClient = new HttpClient(handler) { BaseAddress = new Uri(serverBaseUrl) };
 
         // Configure SignalR connection
@@ -62,7 +63,7 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
                     return token;
                 };
             })
-            .WithAutomaticReconnect(new[] { TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10) })
+            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(10)])
             .Build();
 
         // Subscribe to push notifications - match server's method name

@@ -2,7 +2,7 @@ using VehicleRental.Core.Domain;
 using VehicleRental.Core.Helpers;
 using VehicleRental.Core.Ports;
 
-namespace VehicleRental.Core.Infrastructure.Testing;
+namespace VehicleRental.Core.Tests.Infrastructure;
 
 public class FakeVehicleTypeStore : IVehicleTypeStore
 {
@@ -30,7 +30,7 @@ public class FakeVehicleTypeStore : IVehicleTypeStore
 
     public Task<IReadOnlyCollection<VehicleTypeDefinition>> GetAllAsync()
     {
-        IReadOnlyCollection<VehicleTypeDefinition> types = _vehicleTypes.Values.ToList();
+        IReadOnlyCollection<VehicleTypeDefinition> types = [.. _vehicleTypes.Values];
         return Task.FromResult(types);
     }
 }

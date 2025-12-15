@@ -1,7 +1,7 @@
 using VehicleRental.Core.Domain;
 using VehicleRental.Core.Ports;
 
-namespace VehicleRental.Core.Infrastructure.Testing;
+namespace VehicleRental.Core.Tests.Infrastructure;
 
 public class FakeVehicleCatalog : IVehicleCatalog
 {
@@ -20,7 +20,7 @@ public class FakeVehicleCatalog : IVehicleCatalog
 
     public Task<IReadOnlyCollection<Vehicle>> GetAllAsync()
     {
-        IReadOnlyCollection<Vehicle> vehicles = _vehicles.Values.ToList();
+        IReadOnlyCollection<Vehicle> vehicles = [.. _vehicles.Values];
         return Task.FromResult(vehicles);
     }
 

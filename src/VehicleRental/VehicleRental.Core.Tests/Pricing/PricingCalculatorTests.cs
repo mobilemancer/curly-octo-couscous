@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using VehicleRental.Core.Domain;
-using VehicleRental.Core.Infrastructure.Testing;
 using VehicleRental.Core.Pricing;
+using VehicleRental.Core.Tests.Infrastructure;
 
 namespace VehicleRental.Core.Tests.Pricing;
 

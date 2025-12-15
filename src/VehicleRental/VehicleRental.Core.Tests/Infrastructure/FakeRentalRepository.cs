@@ -1,7 +1,7 @@
 using VehicleRental.Core.Domain;
 using VehicleRental.Core.Ports;
 
-namespace VehicleRental.Core.Infrastructure.Testing;
+namespace VehicleRental.Core.Tests.Infrastructure;
 
 public class FakeRentalRepository : IRentalRepository
 {
@@ -40,7 +40,7 @@ public class FakeRentalRepository : IRentalRepository
 
     public Task<IEnumerable<Rental>> GetAllAsync()
     {
-        IEnumerable<Rental> rentals = _rentals.Values.ToList();
+        IEnumerable<Rental> rentals = [.. _rentals.Values];
         return Task.FromResult(rentals);
     }
 }

@@ -15,7 +15,6 @@ public class TimeZoneHandlingTests
 
         // 2025-12-13 10:00 UTC (3 days later)
         var returnUtc = new DateTimeOffset(2025, 12, 13, 10, 0, 0, TimeSpan.Zero);
-        var returnEst = new DateTimeOffset(2025, 12, 13, 5, 0, 0, TimeSpan.FromHours(-5));
         var returnJst = new DateTimeOffset(2025, 12, 13, 18, 0, 0, TimeSpan.FromHours(8));
 
         // Act - All combinations should yield same result

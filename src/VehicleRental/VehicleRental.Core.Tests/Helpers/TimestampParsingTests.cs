@@ -195,7 +195,7 @@ public class TimestampParsingTests
         var timestamp = "2025-12-13T10:00:00.123456Z";
 
         // Act
-        var success = DateTimeOffset.TryParse(timestamp, out var result);
+        var success = DateTimeOffset.TryParse(timestamp, out _);
 
         // Assert - Should parse, precision may vary by framework
         Assert.True(success);

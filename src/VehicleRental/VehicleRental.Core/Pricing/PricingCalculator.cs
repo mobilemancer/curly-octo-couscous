@@ -8,21 +8,14 @@ namespace VehicleRental.Core.Pricing;
 /// <summary>
 /// Calculates rental prices using vehicle type definitions and pricing formulas.
 /// </summary>
-public class PricingCalculator
+public class PricingCalculator(
+    IVehicleTypeStore vehicleTypeStore,
+    IPriceFormulaEvaluator formulaEvaluator,
+    ILogger<PricingCalculator> logger)
 {
-    private readonly IVehicleTypeStore _vehicleTypeStore;
-    private readonly IPriceFormulaEvaluator _formulaEvaluator;
-    private readonly ILogger<PricingCalculator> _logger;
-
-    public PricingCalculator(
-        IVehicleTypeStore vehicleTypeStore,
-        IPriceFormulaEvaluator formulaEvaluator,
-        ILogger<PricingCalculator> logger)
-    {
-        _vehicleTypeStore = vehicleTypeStore ?? throw new ArgumentNullException(nameof(vehicleTypeStore));
-        _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly IVehicleTypeStore _vehicleTypeStore = vehicleTypeStore ?? throw new ArgumentNullException(nameof(vehicleTypeStore));
+    private readonly IPriceFormulaEvaluator _formulaEvaluator = formulaEvaluator ?? throw new ArgumentNullException(nameof(formulaEvaluator));
+    private readonly ILogger<PricingCalculator> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <summary>
     /// Calculates the rental price for the given parameters.

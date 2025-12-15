@@ -229,7 +229,7 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
             new AuthenticationHeaderValue("Bearer", authResponse.AccessToken);
 
         _logger.LogDebug("Authorization header set on HttpClient. Token starts with: {TokenPrefix}...",
-            authResponse.AccessToken.Substring(0, Math.Min(20, authResponse.AccessToken.Length)));
+            authResponse.AccessToken[..Math.Min(20, authResponse.AccessToken.Length)]);
 
         return authResponse.AccessToken;
     }
@@ -385,13 +385,13 @@ public class RemoteVehicleTypeStore : IVehicleTypeStore, IAsyncDisposable
         if (!_isConnected)
         {
             _logger.LogWarning("Not connected to server, returning empty list");
-            return Array.Empty<VehicleTypeDefinition>();
+            return [];
         }
 
         await _syncLock.WaitAsync();
         try
         {
-            return _cache.Values.ToList();
+            return [.. _cache.Values];
         }
         finally
         {

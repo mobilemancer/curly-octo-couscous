@@ -8,21 +8,14 @@ namespace VehicleRental.Core.Application;
 /// <summary>
 /// Service for registering vehicle returns and calculating rental prices.
 /// </summary>
-public class ReturnService
+public class ReturnService(
+    IRentalRepository rentalRepository,
+    PricingCalculator pricingCalculator,
+    ILogger<ReturnService> logger)
 {
-    private readonly IRentalRepository _rentalRepository;
-    private readonly PricingCalculator _pricingCalculator;
-    private readonly ILogger<ReturnService> _logger;
-
-    public ReturnService(
-        IRentalRepository rentalRepository,
-        PricingCalculator pricingCalculator,
-        ILogger<ReturnService> logger)
-    {
-        _rentalRepository = rentalRepository ?? throw new ArgumentNullException(nameof(rentalRepository));
-        _pricingCalculator = pricingCalculator ?? throw new ArgumentNullException(nameof(pricingCalculator));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly IRentalRepository _rentalRepository = rentalRepository ?? throw new ArgumentNullException(nameof(rentalRepository));
+    private readonly PricingCalculator _pricingCalculator = pricingCalculator ?? throw new ArgumentNullException(nameof(pricingCalculator));
+    private readonly ILogger<ReturnService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task<Result<RegisterReturnResponse>> RegisterReturnAsync(RegisterReturnRequest request)
     {

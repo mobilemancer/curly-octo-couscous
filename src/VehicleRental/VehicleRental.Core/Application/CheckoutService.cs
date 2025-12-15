@@ -8,24 +8,16 @@ namespace VehicleRental.Core.Application;
 /// <summary>
 /// Service for registering vehicle checkouts.
 /// </summary>
-public class CheckoutService
+public class CheckoutService(
+    IRentalRepository rentalRepository,
+    IVehicleCatalog vehicleCatalog,
+    IVehicleTypeStore vehicleTypeStore,
+    ILogger<CheckoutService> logger)
 {
-    private readonly IRentalRepository _rentalRepository;
-    private readonly IVehicleCatalog _vehicleCatalog;
-    private readonly IVehicleTypeStore _vehicleTypeStore;
-    private readonly ILogger<CheckoutService> _logger;
-
-    public CheckoutService(
-        IRentalRepository rentalRepository,
-        IVehicleCatalog vehicleCatalog,
-        IVehicleTypeStore vehicleTypeStore,
-        ILogger<CheckoutService> logger)
-    {
-        _rentalRepository = rentalRepository ?? throw new ArgumentNullException(nameof(rentalRepository));
-        _vehicleCatalog = vehicleCatalog ?? throw new ArgumentNullException(nameof(vehicleCatalog));
-        _vehicleTypeStore = vehicleTypeStore ?? throw new ArgumentNullException(nameof(vehicleTypeStore));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly IRentalRepository _rentalRepository = rentalRepository ?? throw new ArgumentNullException(nameof(rentalRepository));
+    private readonly IVehicleCatalog _vehicleCatalog = vehicleCatalog ?? throw new ArgumentNullException(nameof(vehicleCatalog));
+    private readonly IVehicleTypeStore _vehicleTypeStore = vehicleTypeStore ?? throw new ArgumentNullException(nameof(vehicleTypeStore));
+    private readonly ILogger<CheckoutService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     public async Task<Result<RegisterCheckoutResponse>> RegisterCheckoutAsync(RegisterCheckoutRequest request)
     {

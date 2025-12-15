@@ -192,6 +192,8 @@ public class SafeFormulaEvaluatorTests
     [InlineData(null)]
     [InlineData("")]
     [InlineData("   ")]
+    [InlineData("( 1 * 10")]
+    [InlineData("( 1 * 10(")]
     public void Evaluate_InvalidFormula_ThrowsArgumentException(string? formula)
     {
         // Arrange

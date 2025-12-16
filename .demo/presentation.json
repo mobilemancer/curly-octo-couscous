@@ -1,0 +1,220 @@
+{
+  "$schema": "https://demotime.show/demo-time.schema.json",
+  "title": "Vehicle Rental System Presentation",
+  "description": "A comprehensive presentation covering the business value and technical architecture of the Vehicle Rental System",
+  "version": 2,
+  "demos": [
+    {
+      "title": "Part 1: Business Pitch - Vehicle Rental System",
+      "description": "Pitching the Vehicle Rental System to customers",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/01-business-welcome.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 1.2: Key Business Benefits",
+      "description": "Why customers should choose this system",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/02-business-benefits.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 1.3: Vehicle Categories",
+      "description": "Supported vehicle types and pricing models",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/03-vehicle-categories.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 1.4: Checkout Workflow",
+      "description": "Simple checkout process with price locking",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/04-checkout-workflow.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 1.5: Return & Billing Workflow",
+      "description": "Seamless return process with automatic calculations",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/05-return-workflow.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 1.6: Real-Time Administration",
+      "description": "Central management tools for admins",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/06-admin-tools.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 1.7: Business Summary",
+      "description": "Competitive advantages and conclusion",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/07-business-summary.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.1: Architecture Overview",
+      "description": "System architecture and components",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/08-tech-architecture.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.2: Project Structure",
+      "description": "Solution organization and dependencies",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/09-project-structure.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.3: Technology Stack",
+      "description": "Core technologies used in the project",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/10-tech-stack.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.4: Authentication",
+      "description": "JWT-based authentication flow",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/11-authentication.md"
+        },
+        {
+          "action": "open",
+          "path": "src/VehicleRental/VehicleRental.Server/Program.cs"
+        },
+        {
+          "action": "highlight",
+          "path": "src/VehicleRental/VehicleRental.Server/Program.cs",
+          "position": "50:75"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.5: SignalR Real-Time Updates",
+      "description": "Real-time synchronization using SignalR",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/12-signalr.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.6: Pricing Engine",
+      "description": "SafeFormulaEvaluator and dynamic pricing",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/13-pricing-engine.md"
+        },
+        {
+          "action": "open",
+          "path": "src/VehicleRental/VehicleRental.Core/Pricing/PricingCalculator.cs"
+        },
+        {
+          "action": "highlight",
+          "path": "src/VehicleRental/VehicleRental.Core/Pricing/PricingCalculator.cs",
+          "position": "30:55"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.7: Domain Model",
+      "description": "Core entities and data structures",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/14-domain-model.md"
+        },
+        {
+          "action": "open",
+          "path": "src/VehicleRental/VehicleRental.Core/Domain/VehicleTypeDefinition.cs"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.8: Testing Strategy",
+      "description": "Unit testing approach with xUnit",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/15-testing.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.9: Development Setup",
+      "description": "Getting started with the project",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/16-setup.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.10: Design Decisions",
+      "description": "Key architectural choices explained",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/17-design-decisions.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.11: REST API Endpoints",
+      "description": "Complete API surface overview",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/18-api-endpoints.md"
+        }
+      ]
+    },
+    {
+      "title": "Part 2.12: Technical Summary",
+      "description": "Architecture recap and conclusion",
+      "steps": [
+        {
+          "action": "openSlide",
+          "path": ".demo/slides/19-tech-summary.md"
+        }
+      ]
+    }
+  ]
+}

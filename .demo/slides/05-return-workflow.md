@@ -10,7 +10,8 @@
    - Formula applied
 4. **Invoice Generated** - Ready for billing
 
-### Smart Features:
+### Smart Features
+
 - ⏰ Timezone-aware day calculations
 - 📝 Automatic invoice generation
 - 🔄 Real-time fleet status update

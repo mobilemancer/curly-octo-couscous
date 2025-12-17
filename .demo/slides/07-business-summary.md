@@ -1,18 +1,18 @@
-# ✅ Summary: Why Us?
+# ✅ Why Us Choose Us?
 
 ## Competitive Advantages
 
 ✅ **Built for Franchises** - Local ownership, central governance
 
-✅ **Real-Time Sync** - SignalR-powered instant updates
+✅ **Real-Time Sync** - Server-client instant updates
 
 ✅ **Flexible Pricing** - Custom formulas per vehicle type
 
 ✅ **Reliable** - Works offline, syncs when connected
 
-✅ **Modern Stack** - .NET 10, ASP.NET Core, SignalR
+✅ **Modern Stack** - Built on new technology, by seasoned engineers
 
-✅ **Tested** - Comprehensive unit test coverage
+✅ **Tested** - Comprehensive test coverage, powered by state of the art AI!
 
 ---
 

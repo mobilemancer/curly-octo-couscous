@@ -4,10 +4,12 @@
 
 | Category | Description | Pricing Model |
 |----------|-------------|-----------------|
-| **Small Car** | Compact vehicles | Day + km based |
+| **Small Car** | Compact vehicles | Day based |
 | **Station Wagon** | Family vehicles | Day + km based |
-| **Truck** | Commercial vehicles | Day-only pricing |
+| **Truck** | Commercial vehicles | Day + km pricing |
 
-### Pricing Example:
-- **Small Car**: `baseDayRate * days * 1.2 + baseKmPrice * km`
-- **Truck**: `baseDayRate * days * 1.5` (no km charge)
+### New Vehicle Types
+
+- Easily create new types of vehicles
+- Dynamic fomula calculator ensures flexibility
+- All easily managed from the Admin system

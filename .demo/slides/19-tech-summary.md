@@ -18,4 +18,14 @@
 
 ---
 
-**Questions?**
+## TODO
+
+- Real perisstence
+- Real Auth
+- Role handling
+- Storing rentals server side, alt replicate between all clients - to enable multi location rent and drop
+- Proper log sinks
+
+---
+
+## **Questions?**
